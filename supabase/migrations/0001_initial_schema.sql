@@ -171,20 +171,12 @@ create table if not exists public.import_jobs (
   completed_at timestamptz
 );
 
-do $
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'production_entries_source_import_fk'
-      and conrelid = 'public.production_entries'::regclass
-  ) then
-    alter table public.production_entries
-      add constraint production_entries_source_import_fk
-      foreign key (source_import_id) references public.import_jobs(id) on delete restrict;
-  end if;
-end;
-$;
+alter table public.production_entries
+  add constraint production_entries_source_import_fk
+  foreign key (source_import_id) references public.import_jobs(id) on delete restrict;
 
+-- Migration version 0001 is a one-time initial schema migration; do not execute
+-- the file manually a second time after a successful commit.
 create table if not exists public.audit_events (
   id uuid primary key default gen_random_uuid(),
   actor_profile_id uuid references public.profiles(id) on delete restrict,
