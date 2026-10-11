@@ -105,14 +105,18 @@ export function createChampionSnapshot(input: {
   })) {
     if (!value.trim()) throw new TypeError(`${label} não pode ser vazio.`);
   }
-  if (!Number.isFinite(Date.parse(input.announcedAt))) {
-    throw new RangeError("announcedAt deve ser uma data/hora válida.");
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(input.announcedAt)
+    || !Number.isFinite(Date.parse(input.announcedAt))
+  ) {
+    throw new RangeError("announcedAt deve ser uma data/hora ISO 8601 com fuso válido.");
   }
   if (!["individual", "squads", "campaign_teams"].includes(input.rankingType)) {
     throw new TypeError("Tipo de ranking inválido.");
   }
 
   const positions = new Set<number>();
+  const negotiatorIds = new Set<string>();
   const ranking = input.ranking.map((entry) => {
     if (!Number.isSafeInteger(entry.position) || entry.position < 1) {
       throw new RangeError("A posição do ranking deve ser um inteiro positivo.");
@@ -128,6 +132,10 @@ export function createChampionSnapshot(input: {
     if (!entry.negotiatorId.trim() || !entry.displayName.trim()) {
       throw new TypeError("Cada entrada do ranking precisa de identificador e nome.");
     }
+    if (negotiatorIds.has(entry.negotiatorId)) {
+      throw new TypeError(`Negociador duplicado no ranking: ${entry.negotiatorId}`);
+    }
+    negotiatorIds.add(entry.negotiatorId);
     return Object.freeze({ ...entry });
   });
 
