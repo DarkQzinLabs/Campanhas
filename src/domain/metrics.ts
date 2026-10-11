@@ -50,6 +50,9 @@ export function calculateCampaignMetrics(
     if (productionIds.has(item.negotiatorId)) {
       throw new TypeError(`Produção agregada duplicada para negociador: ${item.negotiatorId}`);
     }
+    if (!targetIds.has(item.negotiatorId)) {
+      throw new TypeError(`Produção sem meta/inclusão na campanha: ${item.negotiatorId}`);
+    }
     productionIds.add(item.negotiatorId);
     assertNonNegativeSafeInteger(item.realizedCents, "realizedCents");
     realizedCents += item.realizedCents;
@@ -102,11 +105,22 @@ export function createChampionSnapshot(input: {
   })) {
     if (!value.trim()) throw new TypeError(`${label} não pode ser vazio.`);
   }
+  if (!Number.isFinite(Date.parse(input.announcedAt))) {
+    throw new RangeError("announcedAt deve ser uma data/hora válida.");
+  }
+  if (!["individual", "squads", "campaign_teams"].includes(input.rankingType)) {
+    throw new TypeError("Tipo de ranking inválido.");
+  }
 
+  const positions = new Set<number>();
   const ranking = input.ranking.map((entry) => {
     if (!Number.isSafeInteger(entry.position) || entry.position < 1) {
       throw new RangeError("A posição do ranking deve ser um inteiro positivo.");
     }
+    if (positions.has(entry.position)) {
+      throw new TypeError(`Posição duplicada no ranking: ${entry.position}`);
+    }
+    positions.add(entry.position);
     assertNonNegativeSafeInteger(entry.realizedCents, "realizedCents");
     if (!Number.isFinite(entry.percentage) || entry.percentage < 0) {
       throw new RangeError("percentage deve ser finito e não negativo.");
