@@ -5,7 +5,7 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 ## Convenções
 - Chaves primárias UUID.
 - Datas de evento armazenadas com fuso definido; usar timestamps UTC para auditoria.
-- Valores monetários/produção como NUMERIC/DECIMAL, não ponto flutuante binário.
+- Valores monetários/produção armazenados em centavos inteiros (`BIGINT` no PostgreSQL e inteiros seguros no domínio TypeScript); formatar para moeda apenas na apresentação.
 - Registros históricos são preservados; usar status/arquivamento em vez de exclusão destrutiva.
 - Toda entidade mutável relevante deve ter created_at e updated_at; operações administrativas críticas devem gerar auditoria.
 
@@ -99,9 +99,10 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 - negotiator_id
 - campaign_id (opcional se a origem for geral)
 - cycle_id (opcional conforme a origem dos dados)
+- source_system (identifica o sistema de origem)
 - external_key (ID estável do registro de origem, quando disponível)
 - occurred_at
-- amount (NUMERIC)
+- amount_cents (BIGINT >= 0)
 - source_import_id (opcional)
 - source_payload (JSON restrito/opcional para rastreabilidade, sem segredos)
 - created_at, updated_at
@@ -149,7 +150,7 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 - Índices em campaign_id/cycle_id/negotiator_id/occurred_at.
 - CHECK amount >= 0 e target_amount >= 0, salvo se o negócio confirmar estornos negativos.
 - Constraints para estados válidos e relações coerentes.
-- Unicidade para external_key no escopo correto da fonte.
+- A migração inicial aplica unicidade parcial em `(source_system, external_key)` quando `external_key` não é nula; confirmar o escopo real da chave com amostras da origem antes de importar dados reais.
 - Políticas de acesso para impedir edição por viewer e leitura não autorizada de dados sensíveis.
 
 ## Questões para validar com amostras de dados
