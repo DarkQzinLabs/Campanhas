@@ -64,7 +64,7 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 ### campaign_members
 - campaign_id
 - negotiator_id
-- target_amount (NUMERIC >= 0)
+- target_cents (BIGINT >= 0)
 - included_from, included_to (opcionais)
 - chave única campaign_id + negotiator_id
 
@@ -148,7 +148,7 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 
 ## Índices/constraints a planejar
 - Índices em campaign_id/cycle_id/negotiator_id/occurred_at.
-- CHECK amount >= 0 e target_amount >= 0, salvo se o negócio confirmar estornos negativos.
+- CHECK amount_cents >= 0 e target_cents >= 0, salvo se o negócio confirmar estornos negativos.
 - Constraints para estados válidos e relações coerentes.
 - A migração inicial aplica unicidade parcial em `(source_system, external_key)` quando `external_key` não é nula; confirmar o escopo real da chave com amostras da origem antes de importar dados reais.
 - Políticas de acesso para impedir edição por viewer e leitura não autorizada de dados sensíveis.
