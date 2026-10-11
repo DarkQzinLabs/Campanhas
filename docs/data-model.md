@@ -77,9 +77,11 @@ Status: desenho conceitual. Os tipos/constraints definitivos devem ser validados
 - active
 
 ### campaign_group_members
+- campaign_id
 - group_id
 - negotiator_id
 - valid_from, valid_to
+- constraints compostas garantem que o grupo pertence à campanha e que o negociador está incluído nessa mesma campanha
 - preservar composição usada em ciclos antigos por snapshot
 
 ### campaign_cycles
