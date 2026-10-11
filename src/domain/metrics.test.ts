@@ -15,7 +15,7 @@ describe("calculateCampaignMetrics", () => {
   });
 
   it("retorna percentual zero quando a meta é zero", () => {
-    expect(calculateCampaignMetrics([], [{ negotiatorId: "a", realizedCents: 500 }])).toEqual({
+    expect(calculateCampaignMetrics([{ negotiatorId: "a", targetCents: 0 }], [{ negotiatorId: "a", realizedCents: 500 }])).toEqual({
       targetCents: 0, realizedCents: 500, remainingCents: 0, percentage: 0,
     });
   });
@@ -51,10 +51,31 @@ describe("createChampionSnapshot", () => {
     expect(Object.isFrozen(snapshot.ranking[0])).toBe(true);
   });
 
-  it("rejeita posições inválidas", () => {
+  it("rejeita posições inválidas e duplicadas", () => {
     expect(() => createChampionSnapshot({
       ...base,
       ranking: [{ ...base.ranking[0]!, position: 0 }],
     })).toThrow(RangeError);
+    expect(() => createChampionSnapshot({
+      ...base,
+      ranking: [
+        { ...base.ranking[0]!, negotiatorId: "neg-1", position: 1 },
+        { ...base.ranking[0]!, negotiatorId: "neg-2", position: 1 },
+      ],
+    })).toThrow(/Posição duplicada/);
+  });
+
+  it("rejeita data de anúncio inválida", () => {
+    expect(() => createChampionSnapshot({
+      ...base,
+      announcedAt: "não-é-data",
+    })).toThrow(/data\/hora válida/);
+  });
+
+  it("rejeita produção de negociador fora da campanha", () => {
+    expect(() => calculateCampaignMetrics(
+      [{ negotiatorId: "incluído", targetCents: 100 }],
+      [{ negotiatorId: "fora-da-campanha", realizedCents: 100 }],
+    )).toThrow(/sem meta\/inclusão/);
   });
 });
