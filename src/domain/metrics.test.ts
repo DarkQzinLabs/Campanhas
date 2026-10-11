@@ -65,11 +65,25 @@ describe("createChampionSnapshot", () => {
     })).toThrow(/Posição duplicada/);
   });
 
-  it("rejeita data de anúncio inválida", () => {
+  it("rejeita datas sem fuso ou com formato inválido", () => {
     expect(() => createChampionSnapshot({
       ...base,
       announcedAt: "não-é-data",
-    })).toThrow(/data\/hora válida/);
+    })).toThrow(/ISO 8601/);
+    expect(() => createChampionSnapshot({
+      ...base,
+      announcedAt: "2026-10-11T12:00:00",
+    })).toThrow(/ISO 8601/);
+  });
+
+  it("rejeita o mesmo negociador repetido no ranking", () => {
+    expect(() => createChampionSnapshot({
+      ...base,
+      ranking: [
+        { ...base.ranking[0]!, position: 1 },
+        { ...base.ranking[0]!, position: 2 },
+      ],
+    })).toThrow(/Negociador duplicado/);
   });
 
   it("rejeita produção de negociador fora da campanha", () => {
