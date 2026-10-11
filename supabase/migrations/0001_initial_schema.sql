@@ -98,17 +98,25 @@ create table if not exists public.campaign_groups (
   visual_config jsonb not null default '{}'::jsonb,
   active boolean not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (id, campaign_id)
 );
 
 create table if not exists public.campaign_group_members (
   id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references public.campaign_groups(id) on delete restrict,
-  negotiator_id uuid not null references public.negotiators(id) on delete restrict,
+  campaign_id uuid not null,
+  group_id uuid not null,
+  negotiator_id uuid not null,
   valid_from date,
   valid_to date,
   created_at timestamptz not null default now(),
-  check (valid_to is null or valid_from is null or valid_to >= valid_from)
+  check (valid_to is null or valid_from is null or valid_to >= valid_from),
+  constraint campaign_group_members_group_campaign_fk
+    foreign key (group_id, campaign_id)
+    references public.campaign_groups(id, campaign_id) on delete restrict,
+  constraint campaign_group_members_campaign_member_fk
+    foreign key (campaign_id, negotiator_id)
+    references public.campaign_members(campaign_id, negotiator_id) on delete restrict
 );
 
 create table if not exists public.campaign_cycles (
@@ -127,6 +135,9 @@ create table if not exists public.campaign_cycles (
     (champions_announced_at is null and announced_by is null)
     or (champions_announced_at is not null and announced_by is not null)
   ),
+  check (
+    (status = 'champions_announced') = (champions_announced_at is not null)
+  ),
   unique (id, campaign_id)
 );
 
@@ -143,6 +154,7 @@ create table if not exists public.production_entries (
   source_payload jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  check (cycle_id is null or campaign_id is not null),
   constraint production_entries_cycle_campaign_fk
     foreign key (cycle_id, campaign_id)
     references public.campaign_cycles(id, campaign_id) on delete restrict
