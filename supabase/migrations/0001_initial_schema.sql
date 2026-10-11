@@ -134,6 +134,7 @@ create table if not exists public.production_entries (
   negotiator_id uuid not null references public.negotiators(id) on delete restrict,
   campaign_id uuid references public.campaigns(id) on delete restrict,
   cycle_id uuid references public.campaign_cycles(id) on delete restrict,
+  source_system text not null default 'manual',
   external_key text,
   occurred_at timestamptz not null,
   amount_cents bigint not null check (amount_cents >= 0),
@@ -170,9 +171,19 @@ create table if not exists public.import_jobs (
   completed_at timestamptz
 );
 
-alter table public.production_entries
-  add constraint production_entries_source_import_fk
-  foreign key (source_import_id) references public.import_jobs(id) on delete restrict;
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'production_entries_source_import_fk'
+      and conrelid = 'public.production_entries'::regclass
+  ) then
+    alter table public.production_entries
+      add constraint production_entries_source_import_fk
+      foreign key (source_import_id) references public.import_jobs(id) on delete restrict;
+  end if;
+end;
+$;
 
 create table if not exists public.audit_events (
   id uuid primary key default gen_random_uuid(),
@@ -188,6 +199,9 @@ create index if not exists idx_campaign_cycles_campaign on public.campaign_cycle
 create index if not exists idx_campaign_members_campaign on public.campaign_members(campaign_id);
 create index if not exists idx_campaign_groups_campaign on public.campaign_groups(campaign_id, sort_order);
 create index if not exists idx_group_members_negotiator on public.campaign_group_members(negotiator_id);
+create unique index if not exists idx_production_source_external_key
+  on public.production_entries(source_system, external_key)
+  where external_key is not null;
 create index if not exists idx_production_cycle_date on public.production_entries(cycle_id, occurred_at);
 create index if not exists idx_production_negotiator_date on public.production_entries(negotiator_id, occurred_at);
 create index if not exists idx_import_jobs_created on public.import_jobs(created_at desc);
