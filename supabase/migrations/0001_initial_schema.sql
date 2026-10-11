@@ -134,7 +134,7 @@ create table if not exists public.production_entries (
   id uuid primary key default gen_random_uuid(),
   negotiator_id uuid not null references public.negotiators(id) on delete restrict,
   campaign_id uuid references public.campaigns(id) on delete restrict,
-  cycle_id uuid references public.campaign_cycles(id) on delete restrict,
+  cycle_id uuid,
   source_system text not null default 'manual',
   external_key text,
   occurred_at timestamptz not null,
@@ -142,7 +142,10 @@ create table if not exists public.production_entries (
   source_import_id uuid,
   source_payload jsonb,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint production_entries_cycle_campaign_fk
+    foreign key (cycle_id, campaign_id)
+    references public.campaign_cycles(id, campaign_id) on delete restrict
 );
 
 create table if not exists public.champion_snapshots (
