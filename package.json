@@ -1,0 +1,15 @@
+{
+  "name": "campanhas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de campanhas e rankings de produção",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
