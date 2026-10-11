@@ -126,7 +126,8 @@ create table if not exists public.campaign_cycles (
   check (
     (champions_announced_at is null and announced_by is null)
     or (champions_announced_at is not null and announced_by is not null)
-  )
+  ),
+  unique (id, campaign_id)
 );
 
 create table if not exists public.production_entries (
@@ -147,13 +148,16 @@ create table if not exists public.production_entries (
 create table if not exists public.champion_snapshots (
   id uuid primary key default gen_random_uuid(),
   campaign_id uuid not null references public.campaigns(id) on delete restrict,
-  cycle_id uuid not null references public.campaign_cycles(id) on delete restrict,
+  cycle_id uuid not null,
   announced_at timestamptz not null,
   announced_by uuid not null references public.profiles(id) on delete restrict,
   ranking_type text not null check (ranking_type in ('individual', 'squads', 'campaign_teams')),
   snapshot_payload jsonb not null check (jsonb_typeof(snapshot_payload) = 'object'),
   created_at timestamptz not null default now(),
-  unique (cycle_id)
+  unique (cycle_id),
+  constraint champion_snapshots_cycle_campaign_fk
+    foreign key (cycle_id, campaign_id)
+    references public.campaign_cycles(id, campaign_id) on delete restrict
 );
 
 create table if not exists public.import_jobs (
