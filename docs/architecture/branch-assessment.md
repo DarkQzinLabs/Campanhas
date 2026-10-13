@@ -1,59 +1,118 @@
-# Branch assessment — Campanhas
+# Campanhas — inventário e avaliação das branches
 
-**Data da verificação:** 2026-10-13  
-**Branch de referência para o trabalho atual:** `docs/architecture-foundation`  
-**Conta GitHub usada:** `MatheusPassos07`
+**Verificação:** 2026-10-13  
+**Branch de trabalho:** `docs/architecture-foundation`  
+**Conta usada para alterações:** `MatheusPassos07`  
+**Repositório:** `DarkQzinLabs/Campanhas`
 
-## Decisão operacional
+## 1. Regras operacionais
 
-Não integrar nem excluir as branches `campaign-management-platform` ou `fix/database-integrity-constraints` nesta etapa. Ambas divergem da branch de referência e precisam de revisão de commits/diffs antes de qualquer cherry-pick, merge ou encerramento. A branch `main` permanece fora do escopo de alteração.
+- Trabalhar somente em `docs/architecture-foundation`.
+- Não alterar `main`, não publicar/deployar, não executar migration em banco real.
+- Não apagar branches nem descartar commits sem revisão.
+- Não declarar testes aprovados sem resultado executado e verificável.
+- O painel interativo de acompanhamento permanece na conversa; não reintroduzir um painel local de roadmap no repositório sem aprovação específica.
 
-## Comparação atual das branches
+## 2. Inventário da árvore da branch de trabalho
 
-A comparação mais recente do GitHub entre `docs/architecture-foundation` (base) e `campaign-management-platform` (head) reportou `diverged`: 2 commits exclusivos da branch head e 5 commits exclusivos da base. Para `fix/database-integrity-constraints`, reportou `diverged`: 4 commits exclusivos da branch head e 5 exclusivos da base. Esses números substituem os números de uma consulta anterior registrados em versões anteriores deste documento; divergências podem mudar conforme as branches avançam.
+A árvore Git recursiva foi consultada diretamente e retornou `truncated: false`. O inventário contém os seguintes arquivos:
 
-### `campaign-management-platform`
+| Caminho | Observação |
+|---|---|
+| `LICENSE` | Licença do repositório |
+| `README.md` | Arquivo de 16 bytes; documentação pública insuficiente |
+| `README-DEV.md` | Orientações para desenvolvimento e limitações conhecidas |
+| `docs/architecture.md` | Documento de arquitetura |
+| `docs/architecture/branch-assessment.md` | Este inventário e avaliação |
+| `docs/data-model.md` | Modelo de dados conceitual |
+| `docs/migration-and-testing.md` | Plano inicial de migration e testes |
+| `index.html` | Protótipo visual monolítico, 4.322.480 bytes |
+| `package.json` | Scripts e dependências de desenvolvimento |
+| `src/domain/metrics.ts` | Cálculos e regras de domínio |
+| `src/domain/metrics.test.ts` | Testes de métricas |
+| `src/domain/ranking.ts` | Classificação individual determinística |
+| `src/domain/ranking.test.ts` | Testes de classificação individual |
+| `supabase/migrations/0001_initial_schema.sql` | Migration proposta para PostgreSQL; não executada |
+| `tsconfig.json` | Configuração do TypeScript |
 
-O commit mais recente é `7e16afe7f372f36ccb640ed4a7910489979bd96a`, mensagem `revert: remove unrequested local roadmap dashboard`. O diff confirma a remoção de `dashboard.html`, um painel de acompanhamento local que armazenava o progresso em `localStorage` e avisava que não consultava automaticamente o GitHub. A remoção é coerente com a decisão de manter o painel interativo do projeto na conversa, não dentro do repositório, sem aprovação específica. Não reintroduzir esse dashboard.
+### Correção importante do diagnóstico anterior
 
-A comparação resumida não retornou lista de arquivos para essa branch. O histórico exclusivo restante ainda precisa ser revisado antes de qualquer integração; o fato de haver commits exclusivos não é, por si só, motivo para incorporá-los.
+A afirmação anterior de que `index.html` estava vazio estava incorreta. A árvore Git mostra um arquivo com 4.322.480 bytes e a leitura do início confirma uma interface HTML em português para o ranking, incluindo painel administrativo, seleção de planilha e uso de Tailwind CSS e SheetJS por CDN. O arquivo inclui dados/imagens embutidos em Base64 e concentra a interface num único HTML grande.
 
-### `fix/database-integrity-constraints`
+Portanto, **há uma camada de apresentação prototípica existente**. O que ainda não foi comprovado é a existência de uma aplicação front-end modular e integrada ao backend. O README de desenvolvimento informa que autenticação, autorização/RLS, endpoints e UI da nova arquitetura ainda não foram implementados.
 
-Arquivos identificados na diferença:
-- `.gitignore` adicionado: ignora `node_modules/` e arquivos `.env`, preservando `.env.example`. É uma alteração útil em princípio, mas deve ser integrada seletivamente após confirmar o conteúdo completo do arquivo.
-- `package-lock.json` adicionado (1.235 linhas): melhora a reprodutibilidade das dependências em princípio; ainda precisa ser validado contra o `package.json` e instalado/testado em ambiente com dependências disponíveis.
-- `package.json` alterado: a versão de Vitest difere da branch de referência. Não escolher uma versão por suposição; confirmar compatibilidade do lockfile e do ambiente.
-- `docs/data-model.md` atualizado: revisar alinhamento com o modelo atual antes de integrar.
-- `supabase/migrations/0001_initial_schema.sql` atualizado: inclui chaves estrangeiras compostas para manter a consistência campanha/ciclo, restrições de domínio e trigger para impedir alteração/exclusão de snapshots de campeões.
+Limitação desta inspeção: o conector não conseguiu recuperar o HTML completo de 4,3 MB para análise linha a linha; não se deve declarar que toda a lógica do protótipo foi auditada. O controle de administrador visível no HTML é apenas evidência de interface; não constitui prova de autenticação segura. A proteção administrativa deve ser aplicada e testada no servidor/backend antes de usar dados reais.
 
-Revisão estática dos diffs de commits encontrados:
-- `5ac54de87494e5b399f29d3300ba1441a41b1f9b` adiciona chave única composta em ciclos e chave estrangeira composta em snapshots, evitando relacionar um snapshot a um ciclo de outra campanha.
-- `6539cd714f422ca15519e5b88dd887493ac23036` exige timestamp com fuso explícito ISO 8601 e rejeita IDs de negociador duplicados em snapshots; os testes correspondentes foram atualizados em `e9fb92480c011d1e3d38e9c6abcda5dc071e7cb0`.
-- `546bd76e0202099920c99816bc81210f4d8a68c0` adiciona regras de exclusão de dependências e arquivos de ambiente ao `.gitignore`.
+### Configuração de desenvolvimento observada
 
-Essas mudanças parecem direcionadas a integridade e segurança, mas **ainda não são aprovadas para merge**. A migration está apenas em revisão estática, não foi executada. Ela declara explicitamente que RLS/autorização ainda precisam ser concluídas antes de expor dados pela API. Não aplicar em banco real; revisar e testar primeiro em PostgreSQL descartável. A migration é de execução única e contém `ALTER TABLE ... ADD CONSTRAINT`, portanto não deve ser presumida idempotente apenas por conter alguns `IF NOT EXISTS`.
+O `package.json` declara:
+- `npm test` → `vitest run`;
+- `npm run typecheck` → `tsc --noEmit`;
+- TypeScript `^5.8.3`;
+- Vitest `^3.2.4`.
 
-## Diagnóstico da apresentação e validação
+Não existe `package-lock.json` nesta branch. A tentativa anterior de instalação falhou com erro de rede `EAI_AGAIN` ao acessar o registry, e Vitest não estava disponível naquele ambiente. **Não há evidência de execução bem-sucedida do conjunto completo de testes ou do typecheck.**
 
-Na branch de referência, `index.html` está vazio e as buscas pelos caminhos comuns `src/main.tsx`, `src/App.tsx`, `src/main.ts` e `src/App.vue` não localizaram uma entrada de apresentação nesses caminhos. Isso não prova ausência absoluta de interface em qualquer caminho; a árvore completa ainda precisa ser inspecionada antes de concluir o inventário do frontend.
+## 3. Branch `campaign-management-platform`
 
-O `package.json` declara os scripts `npm run typecheck` e `npm test`, mas não há lockfile na branch de referência. A instalação anterior falhou por `EAI_AGAIN` ao acessar o registry, e Vitest não estava disponível no ambiente. Nenhum resultado de teste completo deve ser tratado como aprovado.
+### Histórico exclusivo revisado
 
-## Próximas ações
+A comparação com a branch de trabalho indica divergência. Os dois commits exclusivos da branch são:
 
-1. Completar o inventário da árvore de arquivos e do histórico exclusivo das três branches.
-2. Revisar integralmente os diffs exclusivos restantes, incluindo `package.json`, lockfile, modelo de dados e migration.
-3. Validar a migration em ambiente descartável e documentar requisitos pendentes de RLS/autorização.
-4. Disponibilizar dependências de forma reproduzível e executar typecheck/testes registrando os resultados reais.
-5. Confirmar se existe frontend funcional; se não existir, registrar uma arquitetura mínima antes de criar a primeira tela.
-6. Só então propor integração seletiva das mudanças úteis, sem merge automático.
+1. [`b2c081a` — feat: add interactive project progress dashboard](https://github.com/DarkQzinLabs/Campanhas/commit/b2c081ad30dc2cb92aea33e2b1097770b5eeb475)
+   - Adicionou `dashboard/acompanhamento.html`, um painel local de roadmap.
+2. [`7e16afe` — revert: remove unrequested local roadmap dashboard](https://github.com/DarkQzinLabs/Campanhas/commit/7e16afe7f372f36ccb640ed4a7910489979bd96a)
+   - Removeu o arquivo adicionado pelo commit anterior.
 
-## Limites de segurança
+Os dois commits são um par de adição/remoção do painel local. O estado final da branch não contém esse dashboard. Não há motivo para reaplicar nenhum deles na branch de trabalho. O histórico e o diff de ambos foram consultados.
+
+A comparação do GitHub reportou `diverged`, com 2 commits exclusivos dessa branch e 7 commits exclusivos da branch de trabalho desde o merge-base atual. Esses números são relativos à referência consultada e podem mudar com novos commits.
+
+## 4. Branch `fix/database-integrity-constraints`
+
+A comparação reportou `diverged`, com 4 commits exclusivos dessa branch e 7 commits exclusivos da branch de trabalho desde o merge-base. Os quatro commits exclusivos foram identificados e revisados por diff:
+
+1. [`3e6a8cc` — fix(db): enforce campaign group and cycle integrity](https://github.com/DarkQzinLabs/Campanhas/commit/3e6a8ccbb826693d8bb7bd5f4a89fbbb82981afd)
+   - Altera a migration para usar chaves estrangeiras compostas em associações de grupo/campanha e em entradas de produção/ciclo/campanha.
+   - Acrescenta verificações de consistência para o estado de anúncio de campeões.
+   - **Risco/validação pendente:** constraints compostas dependem de chaves únicas correspondentes nas tabelas referenciadas e da ordem correta de criação. Não executar sem validar a migration inteira em PostgreSQL descartável.
+2. [`cf56489` — docs(db): document campaign group membership integrity](https://github.com/DarkQzinLabs/Campanhas/commit/cf564895173264c0a4fdf4fe42220c301ca3340c)
+   - Atualiza o modelo conceitual para documentar `campaign_id` e as garantias de consistência entre campanha, grupo e negociador.
+3. [`ca797c4` — chore: update Vitest security fixes](https://github.com/DarkQzinLabs/Campanhas/commit/ca797c4eaf94ba270bf4a9e8af393d3050cb7d2d)
+   - Atualiza Vitest de `^3.2.4` para `^4.1.11` e adiciona `package-lock.json` (1.235 linhas).
+   - **Risco/validação pendente:** validar compatibilidade do major do Vitest com Node.js, scripts, testes e dependências; validar que lockfile e manifesto estão sincronizados e que a instalação reproduzível funciona.
+4. [`546bd76` — chore: ignore dependencies and environment files](https://github.com/DarkQzinLabs/Campanhas/commit/546bd76e0202099920c99816bc81210f4d8a68c0)
+   - Adiciona regras ao `.gitignore` para `node_modules/`, `.env` e `.env.*`, preservando `.env.example`.
+   - Mudança útil em princípio, mas a integração deve continuar seletiva e incluir verificação de que nenhum arquivo de ambiente já versionado está sendo tratado incorretamente.
+
+### Avaliação técnica
+
+As constraints relacionais propostas fortalecem a integridade entre campanhas, ciclos, grupos e negociadores. A documentação e o lockfile também podem ser úteis. Entretanto, **nenhuma dessas mudanças está aprovada automaticamente para integração**. É necessário revisar o diff completo da migration e o manifesto/lockfile em conjunto, executar testes em ambiente descartável e verificar políticas de acesso.
+
+A migration atual na branch de trabalho declara explicitamente que RLS/autorização precisa ser concluída antes de expor dados pela API. Não aplicar a migration a banco real. Também não presumir que ela é idempotente só porque algumas instruções usam `IF NOT EXISTS`.
+
+## 5. Estado verificável e lacunas
+
+- A árvore completa da branch de trabalho foi recuperada sem truncamento e inventariada.
+- O protótipo HTML existe; a arquitetura de apresentação modular ainda não está demonstrada.
+- O domínio TypeScript tem módulos e arquivos de teste versionados.
+- O esquema SQL é uma proposta, não uma migration executada.
+- A instalação anterior não conseguiu baixar dependências; testes completos e typecheck permanecem sem resultado comprovado.
+- O conteúdo completo do HTML monolítico não pôde ser recuperado pelo conector nesta inspeção; uma auditoria de segurança linha a linha do protótipo permanece pendente.
+- Nenhuma branch foi excluída ou integrada nesta ação. `main` e banco real não foram alterados.
+
+## 6. Próxima ação concreta
+
+1. Auditar o protótipo HTML em um checkout local, com busca estática por senha/segredos no cliente, manipulação de DOM, importação de planilhas, persistência local e dependências externas.
+2. Fazer revisão completa da migration e validar a proposta em PostgreSQL descartável; registrar os requisitos de RLS/autorização como bloqueadores para dados reais.
+3. Resolver a reprodutibilidade das dependências e executar typecheck/testes com logs verificáveis.
+4. Depois dessas verificações, propor um plano de migração gradual do protótipo HTML para módulos de apresentação, domínio, aplicação e infraestrutura, sem reescrever tudo às cegas.
+
+## 7. Limites de segurança
 
 - Não alterar `main`.
-- Não executar migrations em banco real.
 - Não publicar/deployar.
-- Não apagar branches nem descartar commits antes de revisar diferenças.
-- Não reintroduzir o painel local de roadmap no repositório sem aprovação.
+- Não executar migrations em banco real.
+- Não excluir branches ou descartar commits.
+- Não introduzir credenciais falsas nem armazenar segredos no cliente.
 - Não afirmar que testes passaram sem logs verificáveis.
