@@ -6,7 +6,7 @@
 
 ## Decisão operacional
 
-Não integrar nem excluir as branches `campaign-management-platform` ou `fix/database-integrity-constraints nesta etapa. Ambas divergem da branch de referência e precisam de revisão de commits/diffs antes de qualquer cherry-pick, merge ou encerramento. A branch `main` permanece fora do escopo de alteração.
+Não integrar nem excluir as branches `campaign-management-platform` ou `fix/database-integrity-constraints` nesta etapa. Ambas divergem da branch de referência e precisam de revisão de commits/diffs antes de qualquer cherry-pick, merge ou encerramento. A branch `main` permanece fora do escopo de alteração.
 
 ## Comparação atual das branches
 
@@ -14,7 +14,7 @@ A comparação mais recente do GitHub entre `docs/architecture-foundation` (base
 
 ### `campaign-management-platform`
 
-O commit mais recente é `7e16afe7f372f36ccb640ed4a7910489979bd96a`, mensagem `revert: remove unrequested local roadmap dashboard`. O diff confirma a remoção de `dashboard.html`, um painel de acompanhamento local que armazenava o progresso em `localStorage) e avisava que não consultava automaticamente o GitHub. A remoção é coerente com a decisão de manter o painel interativo do projeto na conversa, não dentro do repositório, sem aprovação específica. Não reintroduzir esse dashboard.
+O commit mais recente é `7e16afe7f372f36ccb640ed4a7910489979bd96a`, mensagem `revert: remove unrequested local roadmap dashboard`. O diff confirma a remoção de `dashboard.html`, um painel de acompanhamento local que armazenava o progresso em `localStorage` e avisava que não consultava automaticamente o GitHub. A remoção é coerente com a decisão de manter o painel interativo do projeto na conversa, não dentro do repositório, sem aprovação específica. Não reintroduzir esse dashboard.
 
 A comparação resumida não retornou lista de arquivos para essa branch. O histórico exclusivo restante ainda precisa ser revisado antes de qualquer integração; o fato de haver commits exclusivos não é, por si só, motivo para incorporá-los.
 
