@@ -41,7 +41,7 @@ A afirmação anterior de que `index.html` estava vazio estava incorreta. A árv
 
 Portanto, **há uma camada de apresentação prototípica existente**. O que ainda não foi comprovado é a existência de uma aplicação front-end modular e integrada ao backend. O README de desenvolvimento informa que autenticação, autorização/RLS, endpoints e UI da nova arquitetura ainda não foram implementados.
 
-Limitação desta inspeção: o conector não conseguiu recuperar o HTML completo de 4,3 MB para análise linha a linha; não se deve declarar que toda a lógica do protótipo foi auditada. O controle de administrador visível no HTML é apenas evidência de interface; não constitui prova de autenticação segura. A proteção administrativa deve ser aplicada e testada no servidor/backend antes de usar dados reais.
+Limitação desta inspeção: o conector não conseguiu recuperar o HTML completo de 4,3 MB para análise linha a linha; não se deve declarar que toda a lógica do protótipo foi auditada. O documento `docs/migration-and-testing.md` já registra senha administrativa embutida no JavaScript, autenticação local baseada em `localStorage` e possibilidade de criar dados aleatórios de demonstração quando não há dados locais. Esses são riscos de segurança e integridade conhecidos no protótipo: o controle de interface não é autenticação confiável, o estado local não é uma fonte central compartilhada e dados de demonstração podem ser confundidos com dados reais. A proteção administrativa deve ser aplicada e testada no servidor/backend antes de usar dados reais.
 
 ### Configuração de desenvolvimento observada
 
@@ -85,11 +85,20 @@ A comparação reportou `diverged`, com 4 commits exclusivos dessa branch e 7 co
    - Adiciona regras ao `.gitignore` para `node_modules/`, `.env` e `.env.*`, preservando `.env.example`.
    - Mudança útil em princípio, mas a integração deve continuar seletiva e incluir verificação de que nenhum arquivo de ambiente já versionado está sendo tratado incorretamente.
 
-### Avaliação técnica
+### Avaliação técnica estática da migration
 
-As constraints relacionais propostas fortalecem a integridade entre campanhas, ciclos, grupos e negociadores. A documentação e o lockfile também podem ser úteis. Entretanto, **nenhuma dessas mudanças está aprovada automaticamente para integração**. É necessário revisar o diff completo da migration e o manifesto/lockfile em conjunto, executar testes em ambiente descartável e verificar políticas de acesso.
+A leitura completa da migration da branch de trabalho (9.884 caracteres) e da candidata (10.333 caracteres) confirma:
+- A candidata acrescenta uma chave única composta em `campaign_groups(id, campaign_id)` e chaves estrangeiras compostas para impedir que a associação de grupo ou a produção referencie uma campanha/ciclo incompatível.
+- A candidata exige coerência entre `campaign_cycles.status = 'champions_announced'` e `champions_announced_at`, e impede `cycle_id` não nulo sem `campaign_id` em `production_entries`.
+- A candidata preserva o trigger que rejeita UPDATE/DELETE em `champion_snapshots`.
+- A migration não contém declarações `CREATE POLICY` nem `ENABLE ROW LEVEL SECURITY` (verificação textual estática). O cabeçalho também afirma que RLS/autorização ainda precisa ser concluída. Logo, o esquema não está pronto para exposição por API com dados reais.
+- A migration inclui `ALTER TABLE public.production_entries ADD CONSTRAINT production_entries_source_import_fk` sem guarda de existência. É explicitamente uma migration inicial de execução única; reaplicá-la manualmente pode falhar. `CREATE TABLE IF NOT EXISTS` não torna, por si só, a migration inteira idempotente.
 
-A migration atual na branch de trabalho declara explicitamente que RLS/autorização precisa ser concluída antes de expor dados pela API. Não aplicar a migration a banco real. Também não presumir que ela é idempotente só porque algumas instruções usam `IF NOT EXISTS`.
+As constraints candidatas parecem melhorar a integridade relacional, mas ainda exigem validação executável em PostgreSQL descartável, inclusive de ordem de criação, constraints compostas, trigger, rollback e comportamento com dados inválidos. A inspeção estática não prova que a migration executa com sucesso. **Nenhuma mudança está aprovada automaticamente para integração**.
+
+### Avaliação do lockfile e dependências
+
+A branch de referência declara Vitest `^3.2.4` sem lockfile; a branch candidata altera para `^4.1.11` e inclui lockfile v3. O lockfile declara Node.js `^20.19.0 || >=22.12.0` para alguns pacotes opcionais, mas isso não substitui uma execução real do conjunto de testes. Não é possível afirmar compatibilidade completa apenas pela leitura do manifesto. Antes de adotar a mudança, executar instalação reproduzível e `npm run typecheck`/`npm test` com logs. A tentativa anterior de instalação falhou por rede e não houve resultado de testes completo.
 
 ## 5. Estado verificável e lacunas
 
@@ -103,8 +112,8 @@ A migration atual na branch de trabalho declara explicitamente que RLS/autoriza�
 
 ## 6. Próxima ação concreta
 
-1. Auditar o protótipo HTML em um checkout local, com busca estática por senha/segredos no cliente, manipulação de DOM, importação de planilhas, persistência local e dependências externas.
-2. Fazer revisão completa da migration e validar a proposta em PostgreSQL descartável; registrar os requisitos de RLS/autorização como bloqueadores para dados reais.
+1. Completar a auditoria do protótipo num checkout local, pois o conector não recuperou o HTML completo de 4,3 MB; priorizar a remoção de senha no cliente e a substituição da autenticação local por autorização no backend.
+2. Validar a migration candidata em PostgreSQL descartável; registrar RLS/autorização como bloqueadores para dados reais.
 3. Resolver a reprodutibilidade das dependências e executar typecheck/testes com logs verificáveis.
 4. Depois dessas verificações, propor um plano de migração gradual do protótipo HTML para módulos de apresentação, domínio, aplicação e infraestrutura, sem reescrever tudo às cegas.
 
