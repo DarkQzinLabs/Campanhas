@@ -6,7 +6,7 @@
 
 ## Decisão operacional
 
-Não integrar nem excluir as branches `campaign-management-platform` ou `fix/database-integrity-constraints) nesta etapa. Ambas divergem da branch de referência e precisam de revisão de commits/diffs antes de qualquer cherry-pick, merge ou encerramento. A branch `main` permanece fora do escopo de alteração.
+Não integrar nem excluir as branches `campaign-management-platform` ou `fix/database-integrity-constraints` nesta etapa. Ambas divergem da branch de referência e precisam de revisão de commits/diffs antes de qualquer cherry-pick, merge ou encerramento. A branch `main` permanece fora do escopo de alteração.
 
 ## Evidências de comparação
 
