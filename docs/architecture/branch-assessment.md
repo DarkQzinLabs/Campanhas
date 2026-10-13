@@ -41,7 +41,7 @@ A afirmação anterior de que `index.html` estava vazio estava incorreta. A árv
 
 Portanto, **há uma camada de apresentação prototípica existente**. O que ainda não foi comprovado é a existência de uma aplicação front-end modular e integrada ao backend. O README de desenvolvimento informa que autenticação, autorização/RLS, endpoints e UI da nova arquitetura ainda não foram implementados.
 
-Limitação desta inspeção: o conector não conseguiu recuperar o HTML completo de 4,3 MB para análise linha a linha; não se deve declarar que toda a lógica do protótipo foi auditada. O documento `docs/migration-and-testing.md` já registra senha administrativa embutida no JavaScript, autenticação local baseada em `localStorage` e possibilidade de criar dados aleatórios de demonstração quando não há dados locais. Esses são riscos de segurança e integridade conhecidos no protótipo: o controle de interface não é autenticação confiável, o estado local não é uma fonte central compartilhada e dados de demonstração podem ser confundidos com dados reais. A proteção administrativa deve ser aplicada e testada no servidor/backend antes de usar dados reais.
+**Auditoria estática do blob completo realizada nesta ação:** o conector `fetch_blob` recuperou os 4.322.438 bytes do arquivo (162 linhas físicas; quatro ocorrências de imagem WebP Base64) no commit de referência. O checkout local não está disponível nesta sessão: a chamada ao ambiente de contêiner falhou com `ClientError`, e a execução Python não iniciou; portanto não foi possível rodar ferramentas locais, browser tests ou lint sobre o arquivo. A revisão estática completa do conteúdo acessível identificou senha administrativa literal em `ADMIN_PASSWORD`, autenticação baseada em `localStorage`, persistência local, geração de dados aleatórios, importação XLSX com correspondência aproximada de nomes e interpolação de dados persistidos em `innerHTML`. O valor literal da senha não é reproduzido nesta documentação. A análise é estática; não equivale a executar o protótipo nem a um teste dinâmico de segurança.
 
 ### Configuração de desenvolvimento observada
 
@@ -107,15 +107,16 @@ A branch de referência declara Vitest `^3.2.4` sem lockfile; a branch candidata
 - O domínio TypeScript tem módulos e arquivos de teste versionados.
 - O esquema SQL é uma proposta, não uma migration executada.
 - A instalação anterior não conseguiu baixar dependências; testes completos e typecheck permanecem sem resultado comprovado.
-- O conteúdo completo do HTML monolítico não pôde ser recuperado pelo conector nesta inspeção; uma auditoria de segurança linha a linha do protótipo permanece pendente.
+- O blob completo do HTML foi recuperado e revisado estaticamente; auditoria dinâmica, validação em navegador e execução local permanecem bloqueadas pela indisponibilidade do checkout/ambiente local.
 - Nenhuma branch foi excluída ou integrada nesta ação. `main` e banco real não foram alterados.
 
 ## 6. Próxima ação concreta
 
-1. Completar a auditoria do protótipo num checkout local, pois o conector não recuperou o HTML completo de 4,3 MB; priorizar a remoção de senha no cliente e a substituição da autenticação local por autorização no backend.
-2. Validar a migration candidata em PostgreSQL descartável; registrar RLS/autorização como bloqueadores para dados reais.
-3. Resolver a reprodutibilidade das dependências e executar typecheck/testes com logs verificáveis.
-4. Depois dessas verificações, propor um plano de migração gradual do protótipo HTML para módulos de apresentação, domínio, aplicação e infraestrutura, sem reescrever tudo às cegas.
+1. Remover a senha embutida e qualquer decisão de autorização do cliente; especificar autenticação/autorização server-side antes de liberar escrita.
+2. Validar a migration base e a candidata em bancos PostgreSQL descartáveis separados, com logs, asserts de constraints e teste de imutabilidade.
+3. Quando o checkout local estiver disponível, validar importação com planilhas de teste, incluindo nomes ambíguos, valores brasileiros, planilha malformada e arquivo grande; substituir fuzzy matching por IDs estáveis e prévia de importação.
+4. Resolver a reprodutibilidade das dependências e executar typecheck/testes com logs verificáveis.
+5. Depois dessas verificações, propor migração gradual do protótipo para módulos de apresentação, domínio, aplicação e infraestrutura.
 
 ## 7. Limites de segurança
 
