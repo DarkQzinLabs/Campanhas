@@ -298,6 +298,28 @@ Não iniciar uma reescrita integral do HTML de uma só vez. O protótipo tem ris
 8. **Reduzir dependências externas:** inventariar URLs/versões, avaliar empacotamento local e definir CSP/SRI quando aplicável, verificando primeiro compatibilidade do protótipo.
 9. **Só então modernizar a apresentação:** migrar componentes visualmente em etapas, mantendo comparações funcionais, acessibilidade e responsividade.
 
-### Critério para iniciar a primeira alteração funcional
+### Validação do blob histórico do protótipo
 
-O checkout local continua indisponível nesta sessão devido à falha de resolução de `github.com` registrada no inventário. O arquivo `index.html` da branch de referência atual está vazio; o protótipo auditado é associado ao commit histórico indicado acima. Antes de editar a interface, confirmar por SHA que o blob histórico integral foi recuperado e preservado como referência. Não substituir o arquivo vazio nem assumir que ele contém o protótipo auditado.
+A árvore Git do commit `e6c5ca5dd1091b5d82285d175049965f85d3c229` identifica `index.html` com blob SHA `3503f8ab3fb059ae861c5dea926cdbf8077ca279` e tamanho declarado de 4.322.480 bytes. A leitura direta desse blob pelo endpoint GitHub retornou o conteúdo integral (4.322.438 caracteres após decodificação), iniciando com `<!DOCTYPE html>`, terminando com `</html>` e título `Ranking Cobrança - Dashboard`. A árvore da branch `docs/architecture-foundation` aponta para o mesmo blob SHA. Portanto, a afirmação anterior de que o arquivo estaria vazio estava incorreta; não editar nem substituir esse protótipo antes de uma revisão funcional controlada.
+
+A leitura recuperada confirmou marcadores de `localStorage`, `innerHTML` e `dashboard_admin_auth`; isso orienta a auditoria, mas não equivale a revisão linha a linha de toda a lógica. A credencial que já havia sido identificada no JavaScript deve ser tratada como comprometida e não deve ser copiada para novos arquivos.
+
+### Resultado da revisão estática do harness SQL
+
+Foi comparado `supabase/tests/negative_integrity.sql` com a migration candidata `fix/database-integrity-constraints` (blob SHA `f85569137cef39925a407de61e58d38f37f309c5`, 10.333 caracteres). Os nomes de tabelas/colunas, valores de `ranking_type`/status, fixtures e constraints usados nos nove cenários correspondem ao schema candidato. Os handlers dos casos 1–7 capturam a classe de erro esperada e deixam propagar a exceção sentinela `ZX00x` quando uma operação inválida é aceita; os casos 8–9 distinguem a mensagem sentinela do erro lançado pelo trigger. Não foi identificada falha estática que justifique alterar o arquivo SQL nesta rodada.
+
+Limite da conclusão: essa inspeção não prova que a migration instala corretamente nem que os testes passam em PostgreSQL. O script permanece **não executado**. Em particular, os casos 8–9 assumem que o trigger usa a classe padrão `raise_exception` (P0001), conforme a função da migration candidata atualmente define.
+
+### Disponibilidade do ambiente PostgreSQL descartável
+
+Verificação do ambiente de execução desta sessão em 14/10/2026: `psql`, `postgres`, `pg_isready`, `docker` e `podman` não foram encontrados no `PATH`. A única saída de sistema obtida foi a identificação do kernel Linux; não há evidência de servidor PostgreSQL local, cliente SQL ou runtime de contêiner disponível nesta sessão. Nenhum socket/serviço PostgreSQL foi confirmado. O conector GitHub permite ler arquivos, mas não fornece um banco descartável para executar SQL.
+
+**Bloqueio preciso:** não é possível executar com segurança a migration e os testes negativos neste ambiente sem instalar/provisionar um PostgreSQL descartável isolado. Não usarei projeto Supabase ou banco remoto potencialmente real como substituto. Para prosseguir, é necessário disponibilizar um runtime PostgreSQL local/contêiner isolado ou um ambiente de CI explicitamente descartável, sem credenciais/dados de produção. Até lá, manter apenas revisão estática; nenhuma migration ou teste SQL foi executado.
+
+### Próxima ação segura
+
+1. Disponibilizar ambiente PostgreSQL descartável e confirmar sua identidade/isolamento.
+2. Aplicar a migration candidata uma única vez em banco vazio nesse ambiente.
+3. Executar `psql -v ON_ERROR_STOP=1 -f supabase/tests/negative_integrity.sql`, preservando stdout, stderr e código de saída.
+4. Só declarar sucesso se houver código zero, os nove notices `PASS` e nenhum `TEST FAILED`.
+5. Em paralelo, revisar o protótipo por módulos/trechos usando o blob recuperado, sem reescrita integral e sem publicar/deploy.
