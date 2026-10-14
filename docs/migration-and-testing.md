@@ -232,3 +232,72 @@ Esta rodada é uma **auditoria estática do blob completo**, não uma auditoria 
 2. Disponibilizar Docker/PostgreSQL descartável ou um ambiente isolado equivalente, sem credenciais de produção.
 3. Executar o plano PostgreSQL descrito acima, guardando logs e resultados de cada caso negativo.
 4. Só depois iniciar a correção do protótipo: retirar a senha do cliente e descontinuar a autenticação baseada em `localStorage`; não reutilizar dados aleatórios como produção; implementar prévia e correspondência por ID estável na importação; revisar os sinks HTML e as dependências externas.
+
+
+## Revisão estática complementar da migration candidata
+
+**Base de referência:** `4c4efe8510f5ea08a7edf080a29d6f298a36e212`, branch `docs/architecture-foundation`.  
+**Comparação candidata:** `fix/database-integrity-constraints`.  
+**Execução SQL:** não realizada nesta revisão.
+
+### Diferenças de integridade verificadas
+
+A migration candidata acrescenta controles relevantes que não aparecem na migration da branch de referência:
+
+- Chave composta `(id, campaign_id)` em `campaign_groups` e `campaign_cycles`, permitindo referências compostas coerentes.
+- Chaves estrangeiras compostas para exigir que `campaign_group_members` use um grupo e um membro da mesma campanha.
+- Check que impede `production_entries.cycle_id` sem `campaign_id`.
+- Check que sincroniza `campaign_cycles.status = 'champions_announced'` com a presença de `champions_announced_at`; o check existente também exige que timestamp e autor sejam ambos nulos ou ambos preenchidos.
+- Papel padrão de `viewer` em `profiles`, em vez de `admin` na migration da branch de referência.
+
+A candidata também mantém a chave composta de campanha/ciclo para snapshots e produção, unicidade de `cycle_id` no snapshot e trigger que rejeita UPDATE/DELETE em snapshots. Os diffs estáticos parecem reduzir classes reais de inconsistência, mas não substituem testes PostgreSQL.
+
+### Pendências e riscos que permanecem
+
+1. **Autorização:** não há políticas RLS na migration. A própria migration avisa que autorização deve ser concluída antes da exposição da API. É bloqueador para produção.
+2. **Vínculo da produção ao membro da campanha:** `production_entries` referencia negociador e campanha/ciclo, mas não exige que o negociador esteja em `campaign_members` daquela campanha. Confirmar se isso deve ser constraint ou regra de aplicação.
+3. **Importação:** `accepted_count` e `rejected_count` não são limitados em conjunto por `row_count`; `error_report` e `column_mapping` não têm validação de forma JSON no banco. Definir invariantes esperadas antes de adicionar checks.
+4. **Associações temporais:** `valid_from`/ `valid_to` permitem início nulo e fim preenchido. Isso é compatível com o check atual, mas a semântica de vigência precisa ser confirmada; também não há prevenção de intervalos sobrepostos.
+5. **Atualização de auditoria:** as tabelas possuem `updated_at`, mas esta migration não instala trigger geral para atualizá-lo automaticamente. A aplicação teria de manter o campo ou a regra deve ser centralizada no banco.
+6. **Reexecução e drift:** `ALTER TABLE ... ADD CONSTRAINT production_entries_source_import_fk` não tem guarda de existência. `CREATE TABLE IF NOT EXISTS` pode esconder uma tabela preexistente com definição divergente. Tratar a migration como versão única, executar em banco vazio e validar schema drift separadamente.
+7. **Extensão:** `pgcrypto` precisa estar disponível e a conta de migração precisa ter permissão para criá-la se ainda não existir.
+8. **Imutabilidade:** o trigger cobre UPDATE e DELETE comuns; não é uma fronteira de autorização contra proprietário/superusuário ou operações administrativas privilegiadas. A integridade histórica deve ser combinada com controle de acesso, auditoria e política operacional.
+
+Não corrigir essas pendências por suposição: classificar cada uma como regra de domínio confirmada, validação da aplicação ou controle de banco antes de alterar o schema.
+
+## Testes negativos SQL preparados
+
+Arquivo criado na branch de trabalho: [`supabase/tests/negative_integrity.sql`](https://github.com/DarkQzinLabs/Campanhas/blob/docs/architecture-foundation/supabase/tests/negative_integrity.sql).
+
+O arquivo é um roteiro executável via `psql`, destinado **somente** a um banco descartável depois da aplicação da migration candidata. Cria fixtures artificiais, testa falhas esperadas e termina com `ROLLBACK`; não aplica a migration. A diretiva `ON_ERROR_STOP` faz o processo parar se um teste inesperado falhar.
+
+Casos preparados:
+1. Snapshot com campanha diferente da campanha do ciclo — FK composta.
+2. Produção com ciclo preenchido e campanha nula — CHECK.
+3. Membro de grupo ligado a campanha diferente — FK composta.
+4. Ciclo com status de campeão anunciado sem timestamp/autor — CHECK.
+5. Ciclo com data final anterior à inicial — CHECK.
+6. Produção com valor negativo — CHECK.
+7. Chave externa duplicada dentro do mesmo sistema de origem — índice único parcial.
+8. UPDATE em snapshot — trigger de imutabilidade.
+9. DELETE em snapshot — trigger de imutabilidade.
+
+**Status: preparado, não executado.** Não há logs de PostgreSQL nem resultado de testes nesta etapa. Depois de disponibilizar PostgreSQL descartável, aplicar a migration candidata uma única vez em banco vazio, executar o arquivo de testes, guardar stdout/stderr e código de saída; os notices `PASS` são evidência por caso, mas o sucesso global também exige código zero e ausência de `TEST FAILED`.
+
+## Plano incremental para corrigir o protótipo sem reescrita prematura
+
+Não iniciar uma reescrita integral do HTML de uma só vez. O protótipo tem riscos de autenticação, persistência local, importação e renderização; mudanças devem ser fatiadas para permitir comparação comportamental e rollback.
+
+1. **Preservar a referência:** fixar commit/arquivo original, registrar hash e catálogo de telas, regras de cálculo, interações e assets. Não copiar a senha exposta para nenhum novo arquivo; tratá-la como comprometida.
+2. **Criar caracterização de comportamento:** montar fixtures anonimizadas e casos de referência para metas, percentuais, ranking, importação e estado vazio. Distinguir explicitamente demonstração de produção.
+3. **Isolar o risco administrativo primeiro:** não considerar `localStorage` autenticação. Antes de habilitar escrita em versão operacional, implementar identidade e autorização no servidor/API; a interface apenas reflete a permissão recebida.
+4. **Corrigir importação como módulo independente:** validar tipo/tamanho/estrutura, mapear por identificador estável, apresentar prévia, conflitos/duplicados/ambiguidades e relatório de rejeições; gravar somente após confirmação explícita.
+5. **Criar camada de domínio testável:** mover parsing de moeda, cálculo de metas e ranking para funções puras com testes, sem redesenhar ainda todas as telas.
+6. **Introduzir persistência por fatia:** escolher uma entidade/fluxo pequeno, criar API/serviço e reconciliar os resultados com os fixtures; não migrar automaticamente o `localStorage`.
+7. **Substituir renderização insegura por partes:** validar dados na fronteira e usar DOM/templating com escape contextual; eliminar o uso de dados importados em `innerHTML` sem sanitização apropriada.
+8. **Reduzir dependências externas:** inventariar URLs/versões, avaliar empacotamento local e definir CSP/SRI quando aplicável, verificando primeiro compatibilidade do protótipo.
+9. **Só então modernizar a apresentação:** migrar componentes visualmente em etapas, mantendo comparações funcionais, acessibilidade e responsividade.
+
+### Critério para iniciar a primeira alteração funcional
+
+O checkout local continua indisponível nesta sessão devido à falha de resolução de `github.com` registrada no inventário. O arquivo `index.html` da branch de referência atual está vazio; o protótipo auditado é associado ao commit histórico indicado acima. Antes de editar a interface, confirmar por SHA que o blob histórico integral foi recuperado e preservado como referência. Não substituir o arquivo vazio nem assumir que ele contém o protótipo auditado.
