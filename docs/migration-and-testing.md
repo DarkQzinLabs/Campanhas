@@ -201,3 +201,34 @@ Criar fixtures descartáveis com campanhas, ciclos, grupos, negociadores e perfi
 ### 6. Artefatos e decisão
 
 Guardar como evidência: SHAs dos arquivos, versão do PostgreSQL, logs completos, saída das consultas de catálogo, SQL dos testes negativos e resultado esperado/observado de cada caso. A migration candidata só pode ser recomendada para integração depois de todos os testes executáveis passarem, das diferenças em relação à base serem explicadas e do plano de RLS/autorização estar separado e aprovado. Este plano não afirma que qualquer teste foi executado.
+
+## Registro de execução — auditoria de 14/10/2026
+
+### Checkout e ferramentas locais
+
+- Commit solicitado como referência: `e6c5ca5dd1091b5d82285d175049965f85d3c229`.
+- Tentativa de checkout somente leitura: `git clone --filter=blob:none --no-checkout --single-branch --branch docs/architecture-foundation https://github.com/DarkQzinLabs/Campanhas.git /tmp/Campanhas`.
+- Resultado observado: falha com `Could not resolve host: github.com`. Portanto, não existe checkout local nesta sessão e não foram executados testes de navegador, lint ou scanners locais.
+- Ferramentas verificadas no contêiner: Git 2.47.3, Node.js 22.16.0 e npm 10.9.2 disponíveis; Docker, `psql` e `pg_isready` indisponíveis. Não foi possível executar a migration em PostgreSQL descartável nesta sessão.
+- Como alternativa, o blob completo do `index.html` foi obtido pela API do GitHub e analisado estaticamente, sem modificar o protótipo. A árvore Git informa tamanho de 4.322.480 bytes; o conteúdo retornado tem 4.322.438 caracteres e 162 linhas físicas. O blob SHA é `3503f8ab3fb059ae861c5dea926cdbf8077ca279`.
+
+### Confirmações adicionais a partir do HTML completo
+
+- Linha física 75: `ADMIN_PASSWORD = "cobranca2026"` está literal no JavaScript do cliente. Tratar como comprometida; não a reutilizar.
+- Linhas físicas 85–87: o estado `dashboard_cobranca_final_v3` é lido e escrito no `localStorage`; quando o estado não pode ser usado, `loadSaved()` retorna `makeSeed()`.
+- Linha física 80: `makeSeed()` cria valores de meta e produção com `Math.random()`. O botão de reset também chama essa função.
+- Linhas físicas 105–106 e 130–131: `checkAdmin()` considera administrador quem tiver `dashboard_admin_auth === '1'` no armazenamento local; o botão de senha compara a entrada com a constante embutida e grava esse sinal local. Não há validação server-side no protótipo.
+- Linha física 97 e seguintes: `render()` injeta dados interpolados em templates HTML por `innerHTML`. Como parte desses dados pode vir do armazenamento local adulterável, validar e escapar os valores é requisito de segurança.
+- Linhas físicas 149–151: a importação lê o arquivo completo em memória, percorre abas, detecta cabeçalhos entre as cinco primeiras linhas e associa pessoas por substring/primeiro nome. As alterações são salvas e renderizadas imediatamente, sem etapa de prévia/confirmação. O parser numérico usa substituições simplificadas.
+- Linhas físicas 7–9: Tailwind é carregado de `cdn.tailwindcss.com`, SheetJS 0.20.3 de `cdn.sheetjs.com` e a fonte Inter do Google Fonts. O conteúdo examinado não declara CSP nem SRI para esses recursos.
+- A busca textual não encontrou `fetch(`, `XMLHttpRequest`, `WebSocket` ou `sendBeacon` no HTML; isso não equivale a uma prova geral de ausência de comunicação indireta das bibliotecas externas.
+- O HTML contém uma lista nominal de colaboradores e imagens de times em Base64. Confirmar autorização de publicação e minimizar dados pessoais no cliente antes de tornar o ranking acessível publicamente.
+
+Esta rodada é uma **auditoria estática do blob completo**, não uma auditoria dinâmica. Não foram simulados arquivos malformados, entradas XSS em navegador, autenticação por API ou testes de performance.
+
+### Próxima execução reproduzível
+
+1. Restaurar conectividade de rede para GitHub ou disponibilizar um checkout local da branch e commit exatos.
+2. Disponibilizar Docker/PostgreSQL descartável ou um ambiente isolado equivalente, sem credenciais de produção.
+3. Executar o plano PostgreSQL descrito acima, guardando logs e resultados de cada caso negativo.
+4. Só depois iniciar a correção do protótipo: retirar a senha do cliente e descontinuar a autenticação baseada em `localStorage`; não reutilizar dados aleatórios como produção; implementar prévia e correspondência por ID estável na importação; revisar os sinks HTML e as dependências externas.
