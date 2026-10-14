@@ -74,7 +74,7 @@ Os comandos exatos serão definidos após a escolha e criação da estrutura da 
 
 ## Auditoria estática do protótipo — commit `e6c5ca5dd1091b5d82285d175049965f85d3c229`
 
-O blob `index.html` foi recuperado integralmente pelo GitHub e analisado estaticamente: 4.322.438 bytes, 162 linhas físicas, quatro ocorrências de imagens WebP embutidas em Base64. O checkout local não estava disponível nesta sessão (ambiente de contêiner retornou `ClientError`); portanto, nenhuma execução em navegador, lint, scanner local ou teste dinâmico foi realizado.
+O blob `index.html` foi recuperado integralmente pela API do GitHub e analisado estaticamente: tamanho Git de 4.322.480 bytes, conteúdo retornado com 4.322.438 caracteres, 162 linhas físicas e imagens WebP embutidas em Base64. O checkout local não estava disponível nesta sessão porque a tentativa de clone falhou com `Could not resolve host: github.com`; portanto, nenhuma execução em navegador, lint, scanner local ou teste dinâmico foi realizada.
 
 ### Achados verificáveis
 
