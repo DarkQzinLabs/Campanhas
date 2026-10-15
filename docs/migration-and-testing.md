@@ -323,3 +323,25 @@ Verificação do ambiente de execução desta sessão em 14/10/2026: `psql`, `po
 3. Executar `psql -v ON_ERROR_STOP=1 -f supabase/tests/negative_integrity.sql`, preservando stdout, stderr e código de saída.
 4. Só declarar sucesso se houver código zero, os nove notices `PASS` e nenhum `TEST FAILED`.
 5. Em paralelo, revisar o protótipo por módulos/trechos usando o blob recuperado, sem reescrita integral e sem publicar/deploy.
+
+## Registro de revisão estática — 2026-10-15
+
+### Ambiente PostgreSQL descartável
+
+A verificação da sessão de trabalho não encontrou `psql`, `pg_isready`, `postgres`, `initdb`, `docker` ou `podman` no `PATH`; também não identificou processos locais PostgreSQL/container. **Bloqueio preciso:** não há ferramenta de servidor/cliente PostgreSQL nem runtime de container acessível nesta sessão para criar, isolar e comprovar um banco efêmero. Isso não determina se o computador do desenvolvedor possui esses recursos. Nenhuma conexão remota foi tentada e nenhum banco foi usado.
+
+### Correções no teste negativo
+
+O arquivo `supabase/tests/negative_integrity.sql` foi alinhado ao esquema real de `0001_initial_schema.sql`:
+- o teste de produção agora verifica a FK composta com campanha e ciclo incompatíveis, em vez de exigir um CHECK que não existe na migration;
+- o teste de associação de grupo usa as colunas reais `group_id` e `negotiator_id` e verifica a FK para grupo inexistente, em vez de referenciar uma coluna `campaign_id` inexistente;
+- o teste de metadados verifica o CHECK que realmente existe (timestamp de anúncio e autor devem estar ambos preenchidos ou ambos nulos), sem presumir que o status `champions_announced` sozinho obrigue esses metadados.
+
+Revisão estática confirmou que os nove casos restantes/ajustados correspondem a constraints, índice único ou trigger presentes no arquivo de migration. O script termina com `ROLLBACK;`. **Não foi executado**; a confirmação de comportamento depende de PostgreSQL descartável.
+
+### Validação do blob histórico do protótipo
+
+A árvore Git do commit `e6c5ca5dd1091b5d82285d175049965f85d3c229` confirma `index.html` com blob SHA `3503f8ab3fb059ae861c5dea926cdbf8077ca279` e tamanho Git de 4.322.480 bytes. O endpoint Contents do GitHub retornou o conteúdo histórico com 4.322.438 caracteres; a leitura estática confirmou referências à autenticação administrativa no cliente, `localStorage`, geração de dados demonstrativos e uso de `innerHTML`. A diferença entre tamanho Git e caracteres retornados é compatível com representação textual/normalização de quebras de linha; não altera o SHA do blob confirmado pela árvore.
+
+A recuperação via endpoint raw falhou por limite/tamanho do conector, mas o endpoint Contents retornou o documento. Nenhum navegador, scanner ou teste dinâmico foi executado. A senha embutida deve ser considerada comprometida e não deve ser reutilizada.
+
