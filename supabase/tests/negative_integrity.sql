@@ -65,50 +65,51 @@ BEGIN
 END
 $test$;
 
--- 2. Ciclo não pode ser associado a produção sem campaign_id.
+-- 2. Produção não pode associar um ciclo à campanha errada (FK composta).
 DO $test$
 BEGIN
   BEGIN
     INSERT INTO public.production_entries
       (negotiator_id, campaign_id, cycle_id, occurred_at, amount_cents)
     VALUES
-      ('30000000-0000-4000-8000-000000000001', NULL,
+      ('30000000-0000-4000-8000-000000000001',
+       '20000000-0000-4000-8000-000000000002',
        '50000000-0000-4000-8000-000000000001', '2026-10-10T12:00:00Z', 100);
-    RAISE EXCEPTION 'TEST FAILED: production aceitou cycle_id sem campaign_id' USING ERRCODE = 'ZX002';
-  EXCEPTION WHEN check_violation THEN
-    RAISE NOTICE 'PASS: production cycle_id sem campaign_id rejeitado';
-  END;
-END
-$test$;
-
--- 3. Associação de grupo deve respeitar a campanha do grupo e do membro.
-DO $test$
-BEGIN
-  BEGIN
-    INSERT INTO public.campaign_group_members
-      (campaign_id, group_id, negotiator_id)
-    VALUES
-      ('20000000-0000-4000-8000-000000000002',
-       '40000000-0000-4000-8000-000000000001',
-       '30000000-0000-4000-8000-000000000002');
-    RAISE EXCEPTION 'TEST FAILED: grupo aceitou campanha/membro incompatíveis' USING ERRCODE = 'ZX003';
+    RAISE EXCEPTION 'TEST FAILED: production aceitou campanha/ciclo incompatíveis' USING ERRCODE = 'ZX002';
   EXCEPTION WHEN foreign_key_violation THEN
-    RAISE NOTICE 'PASS: associação de grupo incompatível rejeitada';
+    RAISE NOTICE 'PASS: produção com campanha/ciclo incompatíveis rejeitada';
   END;
 END
 $test$;
 
--- 4. Status champions_announced exige timestamp e autor.
+-- 3. Associação não pode referenciar um grupo inexistente.
 DO $test$
 BEGIN
   BEGIN
-    INSERT INTO public.campaign_cycles (campaign_id, label, starts_at, ends_at, status)
+    INSERT INTO public.campaign_group_members (group_id, negotiator_id)
     VALUES
-      ('20000000-0000-4000-8000-000000000001', 'Ciclo inválido',
-       '2026-10-01T00:00:00Z', '2026-10-15T23:59:59Z', 'champions_announced');
-    RAISE EXCEPTION 'TEST FAILED: status de anúncio sem metadados foi aceito' USING ERRCODE = 'ZX004';
+      ('40000000-0000-4000-8000-000000000099',
+       '30000000-0000-4000-8000-000000000002');
+    RAISE EXCEPTION 'TEST FAILED: associação aceitou grupo inexistente' USING ERRCODE = 'ZX003';
+  EXCEPTION WHEN foreign_key_violation THEN
+    RAISE NOTICE 'PASS: associação a grupo inexistente rejeitada';
+  END;
+END
+$test$;
+
+-- 4. Metadados de anúncio devem ser preenchidos em conjunto (CHECK existente).
+DO $test$
+BEGIN
+  BEGIN
+    INSERT INTO public.campaign_cycles
+      (campaign_id, label, starts_at, ends_at, status, champions_announced_at, announced_by)
+    VALUES
+      ('20000000-0000-4000-8000-000000000001', 'Ciclo com metadados inconsistentes',
+       '2026-10-01T00:00:00Z', '2026-10-15T23:59:59Z', 'champions_announced',
+       '2026-10-16T12:00:00Z', NULL);
+    RAISE EXCEPTION 'TEST FAILED: metadados de anúncio incompletos foram aceitos' USING ERRCODE = 'ZX004';
   EXCEPTION WHEN check_violation THEN
-    RAISE NOTICE 'PASS: anúncio sem timestamp/autor rejeitado';
+    RAISE NOTICE 'PASS: metadados de anúncio inconsistentes rejeitados';
   END;
 END
 $test$;
