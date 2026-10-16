@@ -82,7 +82,9 @@ BEGIN
 END
 $test$;
 
--- 3. Associação não pode referenciar um grupo inexistente.
+-- 3. FK básica: associação não pode referenciar um grupo inexistente.
+-- Limitação de esquema: campaign_group_members não possui campaign_id;
+-- portanto, este teste NÃO valida compatibilidade grupo/campanha.
 DO $test$
 BEGIN
   BEGIN
@@ -193,6 +195,43 @@ BEGIN
       RAISE;
     END IF;
     RAISE NOTICE 'PASS: exclusão de snapshot rejeitada pelo trigger';
+  END;
+END
+$test$;
+
+
+-- 10. Ciclo informado exige campaign_id (CHECK esperado pela regra de domínio).
+-- A migration atualmente recuperada não declara este CHECK; este caso deverá
+-- falhar como TEST FAILED até a constraint ser adicionada.
+DO $test$
+BEGIN
+  BEGIN
+    INSERT INTO public.production_entries
+      (negotiator_id, cycle_id, occurred_at, amount_cents)
+    VALUES
+      ('30000000-0000-4000-8000-000000000001',
+       '50000000-0000-4000-8000-000000000001', '2026-10-10T12:00:00Z', 100);
+    RAISE EXCEPTION 'TEST FAILED: cycle_id sem campaign_id foi aceito' USING ERRCODE = 'ZX010';
+  EXCEPTION WHEN check_violation THEN
+    RAISE NOTICE 'PASS: cycle_id sem campaign_id rejeitado';
+  END;
+END
+$test$;
+
+-- 11. Status champions_announced exige timestamp e autor (CHECK esperado).
+-- A migration atualmente recuperada apenas valida os dois metadados entre si,
+-- sem relacioná-los ao status; este caso deverá falhar até a regra ser reforçada.
+DO $test$
+BEGIN
+  BEGIN
+    INSERT INTO public.campaign_cycles
+      (campaign_id, label, starts_at, ends_at, status)
+    VALUES
+      ('20000000-0000-4000-8000-000000000001', 'Ciclo anunciado sem metadados',
+       '2026-10-01T00:00:00Z', '2026-10-15T23:59:59Z', 'champions_announced');
+    RAISE EXCEPTION 'TEST FAILED: status champions_announced sem metadados foi aceito' USING ERRCODE = 'ZX011';
+  EXCEPTION WHEN check_violation THEN
+    RAISE NOTICE 'PASS: status anunciado sem metadados rejeitado';
   END;
 END
 $test$;
