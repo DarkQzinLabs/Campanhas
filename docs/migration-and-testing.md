@@ -345,3 +345,22 @@ A árvore Git do commit `e6c5ca5dd1091b5d82285d175049965f85d3c229` confirma `ind
 
 A recuperação via endpoint raw falhou por limite/tamanho do conector, mas o endpoint Contents retornou o documento. Nenhum navegador, scanner ou teste dinâmico foi executado. A senha embutida deve ser considerada comprometida e não deve ser reutilizada.
 
+
+
+## Verificação de ambiente e revisão estática — 16/10/2026
+
+### Ambiente PostgreSQL descartável
+
+**Bloqueio confirmado nesta sessão:** a inspeção do ambiente de execução não encontrou os executáveis `docker`, `podman`, `psql`, `pg_isready` ou `createdb` no `PATH`. Portanto, não há runtime/container nem cliente PostgreSQL disponível para criar e verificar um banco descartável. Não foi iniciada instalação, não houve conexão com banco, e nenhuma migration ou consulta SQL foi executada. Para retomar a execução, é necessário disponibilizar um ambiente local isolado com Docker/Podman e PostgreSQL, ou um PostgreSQL efêmero comprovadamente descartável; não usar qualquer conexão de produção/compartilhada.
+
+### Revisão estática do script de integridade
+
+O script `supabase/tests/negative_integrity.sql` foi revisado contra a migration disponível nesta branch. Correções/descobertas:
+- O caso 3 foi renomeado para deixar claro que testa apenas a FK de grupo inexistente. A tabela `campaign_group_members` da migration atual não possui `campaign_id`, então não é possível testar compatibilidade grupo/campanha com o esquema atual.
+- Foram adicionados os casos 10 e 11 para detectar duas lacunas da migration atual: `cycle_id` sem `campaign_id` em `production_entries`, e ciclo com status `champions_announced` sem timestamp/autor. A migration lida nesta branch não declara as constraints necessárias para rejeitar esses dois estados; espera-se que esses testes falhem com `TEST FAILED` até a migration ser corrigida. Isso é uma expectativa baseada na leitura estática, não resultado de execução.
+- Os casos existentes continuam sendo apenas testes preparados. O script usa transação e `ROLLBACK`; ainda precisa ser executado num banco novo após aplicar uma única vez a migration candidata, para validar sintaxe e comportamento reais.
+- A migration lida nesta branch também não declara RLS/policies; esse bloqueio de segurança permanece antes de qualquer exposição de dados reais.
+
+### Validação do blob histórico do protótipo
+
+A árvore Git da revisão `e6c5ca5dd1091b5d82285d175049965f85d3c229` confirma que `index.html` aponta para o blob Git `3503f8ab3fb059ae861c5dea926cdbf8077ca279`, com tamanho declarado de 4.322.480 bytes. Isso valida a identidade/metadados do blob histórico via árvore Git. A recuperação do conteúdo completo ainda está bloqueada pelo conector: a leitura do conteúdo bruto de 4,3 MB foi recusada por limite de tamanho. Assim, não afirmo que o conteúdo foi baixado novamente nesta sessão nem que a auditoria linha a linha foi repetida; os achados registrados anteriormente permanecem documentados, mas o conteúdo integral não pôde ser revalidado aqui.
