@@ -13,10 +13,10 @@ Referências internas:
 
 Há duas arquiteturas viáveis em princípio:
 
-- **Opção A — Backend como único caminho de acesso:** navegador chama a API; o backend autentica, autoriza, valida regras de negócio e acessa PostgreSQL. É a direção que melhor se alinha ao desenho atual documentado de handlers, serviços, repositórios e operações transacionais.
+- **Opção A — Backend como caminho principal (padrão):** navegador chama a API para mutações, operações críticas e consultas operacionais/autorizadas; o backend autentica, autoriza, valida regras de negócio e acessa PostgreSQL. É a direção que melhor se alinha ao desenho atual documentado de handlers, serviços, repositórios e operações transacionais. Ela não proíbe uma exceção futura de leitura pública direta, desde que justificada e protegida.
 - **Opção B — Cliente acessa Supabase diretamente com RLS:** o navegador usa uma credencial pública e uma sessão de usuário; PostgreSQL/Supabase aplica políticas RLS por linha e operação. Exige uma matriz de políticas completa e testes negativos para todas as tabelas expostas.
 
-**Recomendação provisória para Campanhas:** adotar a Opção A como caminho principal para mutações administrativas e operações críticas (importação, correção de produção, ciclo, snapshot/anúncio e auditoria). Não significa que a Opção A dispense RLS ou privilégios SQL mínimos. Se for necessário acesso direto do cliente para alguma leitura, essa exceção deve ser deliberada, limitada a dados públicos projetados e protegida por políticas RLS próprias.
+**Alinhamento com DEC-09 (provisória):** backend é o caminho principal para mutações e operações críticas (importação, correção de produção, ciclo, snapshot/anúncio e auditoria). Acesso direto do cliente não é o padrão; pode ser considerado seletivamente apenas se houver benefício concreto documentado, limitado a uma projeção pública mínima e protegido por políticas RLS específicas e validadas. Backend-first não dispensa privilégios SQL mínimos nem autorização no servidor.
 
 Esta recomendação é uma inferência arquitetural com base nos contratos já documentados e na sensibilidade das operações. Não é uma decisão irreversível nem uma implementação.
 
@@ -110,7 +110,7 @@ A matriz completa por tabela permanece em `docs/database-permission-matrix.md`.
 
 ## 6. Critérios de escolha
 
-Escolher backend-only como arquitetura principal se:
+Escolher backend como caminho principal (padrão) se:
 - regras de negócio são compostas e transacionais;
 - importações exigem prévia, idempotência, correção e auditoria;
 - anúncio de campeão exige autorização explícita e snapshot;
@@ -128,7 +128,7 @@ Não escolher apenas por reduzir número de endpoints ou linhas de código. A de
 
 ## 7. Recomendação provisória
 
-Para a primeira versão de Campanhas, usar **backend como caminho principal para todas as mutações e para consultas que envolvam dados operacionais ou autorização complexa**. Considerar acesso direto pelo cliente somente para leituras públicas bem delimitadas se houver vantagem concreta; mesmo nesse caso, definir views/projeções e RLS específicas antes de expor qualquer tabela.
+Para a primeira versão de Campanhas, usar **backend como caminho principal para mutações, operações críticas e consultas operacionais ou com autorização complexa**. Considerar acesso direto pelo cliente somente para leituras públicas bem delimitadas se houver benefício concreto documentado; mesmo nesse caso, definir views/projeções, GRANTs mínimos e RLS específica antes de expor qualquer tabela. Esta orientação corresponde à DEC-09 e permanece provisória.
 
 Manter privilégios SQL mínimos, separar papel de runtime do papel de migrations e avaliar RLS como defesa adicional conforme o caminho de acesso. Se for usado um papel privilegiado que contorne RLS, documentar explicitamente essa exceção e exigir autorização no backend em todas as operações.
 
@@ -150,4 +150,4 @@ Essa recomendação não fecha a decisão de provedor de identidade, tenant, con
 
 A análise foi baseada nos arquivos remotos versionados. Não houve conexão com banco/Supabase, leitura de configuração efetiva de um projeto, execução de SQL, teste, typecheck, build ou instalação. Nenhuma migration foi alterada.
 
-Próxima ação segura: revisar este comparativo com os contratos existentes e atualizar o registro de decisões com a recomendação provisória, sem implementar policies até o checkout local e a identidade estarem confirmados.
+Próxima ação segura: manter este comparativo alinhado à DEC-09 e revisar os privilégios/policies propostos após confirmar checkout local, identidade e provedor. Não implementar policies nem alterar migrations nesta etapa.
