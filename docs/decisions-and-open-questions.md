@@ -80,3 +80,26 @@ Arquivos lidos remotamente nesta etapa: `src/domain/metrics.ts`, `src/domain/ran
 ### Escopo e cautela
 
 Esses são achados por leitura de código remoto, não confirmação de defeitos em execução. Não alterei os arquivos de domínio nesta etapa porque a mudança pode afetar contratos de dados e resultados históricos; primeiro deve ser definido o contrato canônico de identificadores e snapshot. Nenhum teste, typecheck, build ou instalação foi executado.
+
+
+## 8. Achados adicionais da inspeção estática do esquema SQL
+
+Arquivos lidos remotamente: `supabase/migrations/0001_initial_schema.sql`, `supabase/tests/negative_integrity.sql`, `docs/data-model.md` e `docs/migration-and-testing.md`. O SQL de teste foi lido, não executado.
+
+| Prioridade | Achado estático | Risco / encaminhamento |
+|---|---|---|
+| Alta | A migration inicial não define políticas RLS nem habilita RLS nas tabelas. | Não expor diretamente as tabelas a clientes autenticados/anônimos. Antes de qualquer API conectada ao banco, desenhar e validar autorização por papel, campanha e operação. |
+| Alta | A FK composta de `production_entries(cycle_id, campaign_id)` não exige que ambos os campos sejam preenchidos juntos. Em PostgreSQL, uma FK composta padrão não rejeita o caso em que um dos campos é nulo. | O caso `cycle_id` preenchido e `campaign_id` nulo pode escapar da validação da relação. A regra esperada está documentada como pendente e o teste negativo 10 declara que deverá falhar até haver CHECK apropriado. |
+| Alta | `campaign_cycles` permite status `champions_announced` sem metadados de anúncio: o CHECK atual apenas exige que timestamp e autor sejam ambos nulos ou ambos preenchidos. | Relacionar status e metadados na constraint ou numa transição transacional autorizada. O teste negativo 11 já descreve a lacuna esperada. |
+| Média | `campaign_group_members` referencia um grupo de campanha e um negociador, mas não inclui chave/constraint temporal que impeça associações duplicadas ou períodos de validade sobrepostos. | A composição pode ficar ambígua ao reconstruir ranking histórico. Definir se a associação é versionada por intervalos e qual regra impede sobreposição. |
+| Média | `competitive_group_members` e `campaign_group_members` verificam apenas que `valid_to >= valid_from` quando ambas as datas existem. Não há constraint de unicidade ou exclusão para intervalos concorrentes. | A aplicação precisará de uma regra explícita para evitar que a mesma pessoa pertença simultaneamente a composições incompatíveis, se isso for proibido pelo negócio. |
+| Média | O índice de idempotência é global por `(source_system, external_key)` e ignora chaves nulas; `source_system` e `external_key` não têm normalização ou regra de conteúdo não vazio. | A chave pode ser restritiva demais se IDs se repetirem por campanha/conta, ou insuficiente se a origem não garantir unicidade. Definir escopo com amostra real anonimizada antes de mudar o índice. |
+| Média | `import_jobs` registra contagens e status, mas o esquema não contém hash do arquivo, token idempotente da operação ou restrição que impeça reprocessamento concorrente do mesmo trabalho. | O serviço de importação precisa de transição de status atômica, idempotência e bloqueio contra repetição; o modelo pode precisar de campos adicionais após definição do fluxo. |
+| Média | `production_entries.amount_cents` aceita zero e valores não negativos, mas não modela explicitamente estorno/cancelamento ou correção. | Confirmar a semântica comercial antes de manter essa regra como definitiva; não adicionar sinal negativo sem decisão do negócio. |
+| Baixa | A migration cria tabelas com `IF NOT EXISTS`, mas o `ALTER TABLE ... ADD CONSTRAINT production_entries_source_import_fk` não é protegido por guarda de existência. | A migration não é idempotente como script de reaplicação. Tratar como migration versionada de execução única e usar histórico de migrations; não reaplicar manualmente. |
+
+### Leitura dos testes SQL já escritos
+
+O arquivo `supabase/tests/negative_integrity.sql` já inclui cenários para compatibilidade campanha/ciclo, imutabilidade de snapshots, valores negativos e duplicidade da chave de origem. Os casos 10 e 11 registram expressamente duas lacunas do esquema atual. O caso 3 reconhece que a tabela de associação de membros não permite verificar compatibilidade grupo/campanha porque não armazena `campaign_id` nessa associação.
+
+A existência desses cenários não significa que foram aprovados: não foram executados nesta fase. Não alterei a migration nem os testes SQL, pois a solução correta depende das regras de composição histórica, estornos e idempotência ainda pendentes. Antes de qualquer integração real, o banco deve ser validado em ambiente descartável e a autorização precisa ser projetada explicitamente.
