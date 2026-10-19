@@ -55,7 +55,7 @@ A matriz abaixo é uma **proposta de política**, não um reflexo de permissões
 
 | Prioridade | Lacuna observada por leitura | Risco | Próximo passo documental/técnico |
 |---|---|---|---|
-| Crítica | Nenhuma declaração explícita de RLS/policies no arquivo inspecionado | Se houver acesso direto ao banco, o comportamento pode não corresponder à matriz proposta | Decidir o caminho de acesso (backend-only ou cliente com RLS) e documentar privilégios/policies por tabela antes de integrar |
+| Crítica | Nenhuma declaração explícita de RLS/policies no arquivo inspecionado | Se houver acesso direto ao banco, o comportamento pode não corresponder à matriz proposta | Manter backend como caminho principal; avaliar acesso direto seletivo apenas com benefício concreto documentado, projeção mínima, RLS específica, GRANTs mínimos e validação de segurança, conforme DEC-09 |
 | Alta | `profiles.role` e `profiles.active` existem, mas a migration não define quem pode alterá-los | Elevação de privilégio ou revogação ineficaz se a aplicação aceitar alterações indevidas | Definir fluxo de provisionamento, primeiro admin, revogação e bloqueio de autoelevação |
 | Alta | `audit_events.actor_profile_id` é anulável e a migration não garante que o ator venha da identidade autenticada | Falsificação ou perda de rastreabilidade se o cliente puder inserir eventos | Restringir escrita ao backend e derivar o ator da sessão validada; decidir política para eventos anônimos/sistema |
 | Alta | `production_entries`, `import_jobs` e `champion_snapshots` não têm policies no arquivo | Exposição ou mutação de dados operacionais, importações e campeões | Definir permissões por ação e garantir transação/idempotência |
