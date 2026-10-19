@@ -7,6 +7,7 @@ Plataforma de campanhas e rankings de produção.
 - [Arquitetura proposta](docs/architecture.md)
 - [Fundação da aplicação e contratos entre camadas](docs/application-foundation.md)
 - [Modelo de dados](docs/data-model.md)
+- [Registro de decisões e pendências](docs/decisions-and-open-questions.md)
 - [Plano de migração e validação](docs/migration-and-testing.md)
 - [Checklist de verificação local](docs/local-validation-checklist.md)
 
