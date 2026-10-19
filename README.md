@@ -8,5 +8,6 @@ Plataforma de campanhas e rankings de produção.
 - [Fundação da aplicação e contratos entre camadas](docs/application-foundation.md)
 - [Modelo de dados](docs/data-model.md)
 - [Plano de migração e validação](docs/migration-and-testing.md)
+- [Checklist de verificação local](docs/local-validation-checklist.md)
 
 A aplicação executável ainda está em fase de fundação. Consulte a documentação antes de conectar dados reais ou preparar implantação.
