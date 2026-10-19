@@ -14,6 +14,7 @@ Plataforma de campanhas e rankings de produção.
 - [Modelo de ameaças e matriz de acesso](docs/security-threat-model.md)
 - [Contrato de autorização e auditoria](docs/authorization-and-audit-contract.md)
 - [Matriz de permissões por tabela e lacunas de RLS](docs/database-permission-matrix.md)
+- [Comparação de arquitetura de acesso ao banco (backend vs. RLS)](docs/database-access-architecture-comparison.md)
 - [Contrato de segurança para importações](docs/import-safety-contract.md)
 - [Plano de migração e validação](docs/migration-and-testing.md)
 - [Checklist de verificação local](docs/local-validation-checklist.md)
