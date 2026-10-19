@@ -8,6 +8,7 @@ Plataforma de campanhas e rankings de produção.
 - [Fundação da aplicação e contratos entre camadas](docs/application-foundation.md)
 - [Modelo de dados](docs/data-model.md)
 - [Registro de decisões e pendências](docs/decisions-and-open-questions.md)
+- [Contrato de segurança para importações](docs/import-safety-contract.md)
 - [Plano de migração e validação](docs/migration-and-testing.md)
 - [Checklist de verificação local](docs/local-validation-checklist.md)
 
