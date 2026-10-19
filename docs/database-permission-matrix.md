@@ -64,17 +64,19 @@ A matriz abaixo é uma **proposta de política**, não um reflexo de permissões
 | Média | A migration não declara GRANT/REVOKE explícitos | Não é possível inferir a política SQL pretendida a partir desse arquivo | Definir roles e privilégios conforme o caminho de acesso escolhido; verificar configuração efetiva só com autorização apropriada |
 | Média | O escopo de admin e a necessidade de papel `viewer` autenticado ainda estão em aberto | Permissões podem ficar amplas demais ou complexas sem necessidade | Fechar decisões de negócio antes de codificar policies |
 
-## 6. Caminho de acesso a decidir
+## 6. Diretriz provisória de acesso (DEC-09)
 
-### Opção A — Backend confiável como único caminho de acesso
+**Status: provisória.** O backend é o caminho principal para mutações, operações críticas e consultas operacionais ou com autorização complexa. Isso não significa proibir toda exceção de acesso direto: uma leitura pública direta só pode ser considerada se houver benefício concreto documentado, projeção mínima de dados e RLS específica por tabela/operação/escopo, além de GRANTs mínimos e validação de segurança.
 
-O navegador chama a API; o backend valida sessão, perfil, autorização e dados, e acessa o banco com credencial de servidor de escopo mínimo. Vantagem: centraliza regras de domínio e autorização. Risco: qualquer endpoint sem verificação vira uma porta de acesso; ainda é necessário limitar privilégios SQL e proteger a credencial.
+### Padrão — backend confiável como caminho principal
 
-### Opção B — Cliente acessa diretamente o Supabase
+O navegador chama a API; o backend valida sessão, perfil ativo, autorização e dados, e acessa o banco com credencial de servidor de escopo mínimo. Vantagem: centraliza regras de domínio e autorização. Risco: qualquer endpoint sem verificação vira uma porta de acesso; ainda é necessário limitar privilégios SQL e proteger a credencial.
 
-Exige RLS habilitada e policies explícitas em todas as tabelas acessíveis, com testes de negação e de escopo para anônimo, viewer, admin, usuário desativado e identidade inválida. Funções privilegiadas precisam de desenho separado. Não é seguro ativar policies genéricas baseadas apenas em “usuário autenticado”.
+### Exceção condicionada — cliente acessa diretamente o Supabase
 
-A escolha final depende da arquitetura de autenticação, da forma de sessão e da integração Supabase. Esta documentação não seleciona a opção definitivamente nem autoriza conectar um projeto real.
+Só considerar para casos seletivos em que o benefício seja demonstrado. Exige RLS habilitada e policies explícitas em todas as tabelas acessíveis, GRANTs mínimos e testes de negação/escopo para anônimo, viewer, admin, usuário desativado e identidade inválida. Funções privilegiadas precisam de desenho separado. Não é seguro ativar policies genéricas baseadas apenas em “usuário autenticado”. Se não houver benefício claro, manter a operação pelo backend.
+
+A escolha final de provedor, identidade, sessão e configuração Supabase continua pendente. Esta diretriz não autoriza conectar um projeto real nem implementar policies nesta fase. Consulte também `docs/decisions-and-open-questions.md` (DEC-09) e `docs/database-access-architecture-comparison.md`.
 
 ## 7. Plano de validação futura (não executado)
 
