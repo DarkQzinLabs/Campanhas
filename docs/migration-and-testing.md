@@ -366,3 +366,69 @@ O script `supabase/tests/negative_integrity.sql` foi revisado contra a migration
 A árvore Git da revisão `e6c5ca5dd1091b5d82285d175049965f85d3c229` confirma que `index.html` aponta para o blob Git `3503f8ab3fb059ae861c5dea926cdbf8077ca279`, com tamanho declarado de 4.322.480 bytes. Nesta sessão, a API GitHub de blobs retornou o conteúdo correspondente a esse SHA, com 4.322.438 caracteres decodificados; a recuperação foi concluída e não ficou limitada ao fetch de arquivo por caminho.
 
 A nova varredura estática do conteúdo retornado encontrou: `ADMIN_PASSWORD` (2 ocorrências), `dashboard_admin_auth` (3), `localStorage` (6), `innerHTML` (2), `makeSeed` (3), `Math.random` (2) e `XLSX.read` (1). Não encontrou chamadas `fetch(` nem referências a `XMLHttpRequest` no HTML. Esses contadores são evidência textual; não substituem execução dinâmica, scanner de segurança ou revisão contextual de todas as linhas. Os riscos documentados anteriormente — senha literal no cliente, autenticação confiada a `localStorage`, dados aleatórios de demonstração, renderização via `innerHTML` e importação de planilha — continuam confirmados por essa varredura. Nenhum código do protótipo foi alterado nesta etapa.
+
+## F9 — Critérios de prontidão, rollback e autorização de entrega
+
+**Status: critérios documentados; nenhuma versão foi aprovada para entrega e nenhum deploy foi realizado.** Este checklist é um portão de decisão, não uma declaração de que os requisitos já foram atendidos. As decisões de provedor, identidade, autorização, banco e fonte de dados permanecem sujeitas às pendências registradas neste repositório.
+
+### 1. Prontidão obrigatória antes de qualquer candidata a entrega
+
+Todos os itens aplicáveis devem ter evidência verificável anexada ao registro de release. Um item desconhecido ou sem evidência conta como **não atendido**, não como aprovação implícita.
+
+- [ ] **Escopo e versão:** registrar commit exato, branch de origem, diferenças incluídas, requisitos atendidos e limitações conhecidas; confirmar que o artefato foi produzido a partir do código revisado.
+- [ ] **Revisão de código:** alterações revisadas por pessoa autorizada; nenhuma credencial, token, senha, arquivo de ambiente ou dado real indevido no repositório/artefato.
+- [ ] **Validação reproduzível:** testes unitários, integração, interface e segurança pertinentes executados em ambiente isolado; registrar comandos, versões, logs, resultados e falhas. Não declarar execução a partir de testes apenas escritos ou lidos.
+- [ ] **Integridade de dados:** migration aplicada e verificada primeiro em banco descartável; constraints, chaves, índices, snapshots, idempotência e estratégia de restauração documentados. Não reaplicar manualmente migrations já executadas.
+- [ ] **Autorização e identidade:** provedor e fluxo de identidade definidos; primeiro administrador provisionado por processo controlado; revogação testada; permissões mínimas revisadas. Operações administrativas autorizadas no servidor.
+- [ ] **Segurança do banco:** privilégios de runtime separados dos privilégios de migration/DDL quando viável; segredos protegidos; RLS e GRANT/REVOKE revisados conforme os caminhos de acesso efetivamente aprovados. Não expor tabelas diretamente enquanto faltarem controles necessários.
+- [ ] **Importação e fonte de dados:** fonte e permissões aprovadas; importação com prévia, detecção de ambiguidades/duplicados, idempotência, auditoria e cancelamento validados com amostras anonimizadas.
+- [ ] **Auditoria e operação:** contrato de auditoria define ator, ação, resultado, correlação e motivo/contexto necessário, sem segredos; logs e alertas não expõem dados desnecessários.
+- [ ] **Backup e recuperação:** backup apropriado concluído e restauração demonstrada em ambiente isolado; RPO/RTO ou expectativa de perda/recuperação aceitos pelo responsável.
+- [ ] **Observabilidade e suporte:** saúde da aplicação, erros, falhas de autenticação/autorização e falhas de importação podem ser detectados; responsável operacional e procedimento de incidentes identificados.
+- [ ] **Homologação do negócio:** ranking, cálculos, composição histórica, metas, ciclos, pódio e regra de anúncio de campeão aprovados com dados de teste representativos.
+- [ ] **Configuração de entrega:** domínios, variáveis, acessos, políticas de ambiente, dependências e custos conhecidos e revisados. Nenhum serviço pago deve ser ativado sem autorização.
+- [ ] **Rollback ensaiado:** procedimento abaixo validado no ambiente de homologação, com responsáveis e critérios objetivos de disparo.
+- [ ] **Aprovação formal:** responsável do produto e responsável técnico/segurança aprovam a versão específica, o ambiente e a janela de entrega.
+
+### 2. Plano mínimo de rollback
+
+O plano final deve ser específico para a plataforma, banco e estratégia de release escolhidos. Até essas escolhas serem confirmadas, aplicar a sequência conceitual abaixo; não presumir que reverter o código desfaz alterações de dados.
+
+1. **Detectar e decidir:** comparar erro, disponibilidade, autorização, importação e divergências de ranking com limites de aceitação definidos antes da entrega. Registrar quem pode declarar rollback.
+2. **Conter:** interromper a promoção ou desabilitar a funcionalidade afetada pelo mecanismo já validado. Se houver risco de acesso indevido, bloquear o caminho afetado e revogar credenciais/sessões comprometidas conforme o procedimento aprovado.
+3. **Reverter aplicação:** retornar ao artefato anterior identificado por commit/versão imutável ou promover a versão anterior pelo mecanismo da plataforma. Confirmar saúde e comportamento público/admin após a reversão.
+4. **Tratar banco separadamente:** não executar automaticamente migrations reversas nem restaurar backup por impulso. Determinar se a versão anterior é compatível com o schema atual; mudanças destrutivas ou gravações novas exigem plano de recuperação específico e autorização explícita.
+5. **Recuperar dados quando necessário:** restaurar apenas a partir de backup verificado e segundo o procedimento aprovado, preservando evidências e avaliando o impacto de perder gravações posteriores ao backup. Não sobrescrever dados reais sem decisão do responsável.
+6. **Verificar:** confirmar autenticação, autorização, leitura pública, operações administrativas, integridade do ranking, importações e auditoria. Executar apenas as verificações autorizadas no ambiente apropriado.
+7. **Comunicar e fechar:** registrar horário, motivo, versão afetada, ações tomadas, impacto, evidências, estado final e ações preventivas. Reabrir a entrega somente após nova revisão e aprovação.
+
+### 3. Gatilhos de interrupção/rollback
+
+Definir valores mensuráveis para cada release antes da janela. No mínimo, interromper a promoção e avaliar rollback diante de:
+
+- acesso não autorizado, elevação de privilégio ou exposição de segredos/dados;
+- divergência inexplicada no ranking, percentuais, composição histórica ou snapshot anunciado;
+- importação duplicada, parcial ou atribuída à pessoa errada;
+- falha de migration, incompatibilidade de schema ou impossibilidade de recuperar backup;
+- indisponibilidade ou taxa de erro acima do limite de aceitação acordado;
+- perda de auditoria necessária para rastrear operação administrativa;
+- ausência de evidência de que a versão implantada corresponde ao commit aprovado.
+
+### 4. Autorizações separadas
+
+As aprovações abaixo são distintas e não devem ser inferidas uma da outra:
+
+- [ ] **Autorização para validar localmente:** permite apenas as atividades de validação descritas e aprovadas; não autoriza deploy.
+- [ ] **Autorização para homologação:** identifica ambiente, dados de teste e escopo; não autoriza produção.
+- [ ] **Autorização para entrega em ambiente não produtivo:** identifica versão, ambiente, janela e responsáveis; não autoriza produção.
+- [ ] **Autorização explícita de produção:** deve ser posterior à prontidão completa e especificar commit/versão, destino, janela, plano de rollback e responsáveis. Exige aprovação humana explícita no momento da entrega.
+
+### 5. Estado atual e bloqueios
+
+Com base na inspeção documental existente, a aplicação ainda está em fase de fundação. A estrutura executável, a configuração definitiva de identidade/provedor, a autorização de banco, os testes dinâmicos, a restauração de backup e a homologação não foram demonstrados como concluídos. A documentação existente também registra que não há RLS/policies na migration inspecionada; isso é um bloqueio para expor diretamente suas tabelas, não uma prova sobre qualquer projeto remoto.
+
+Portanto, **F9 permanece em planejamento, sem prontidão para entrega**. Este documento não autoriza publicação, não altera configuração de hospedagem e não substitui validações técnicas futuras.
+
+### 6. Evidências mínimas do registro de release
+
+Para cada candidata, criar um registro contendo: identificador da release; commit e branch; ambiente; aprovadores e data; resultados de validação; resumo de segurança; status de migrations e backup/restauração; evidência de homologação; limites/gatilhos acordados; procedimento de rollback e resultado do ensaio; decisão final e eventuais exceções aceitas explicitamente.
