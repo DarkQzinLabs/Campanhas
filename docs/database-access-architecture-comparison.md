@@ -22,7 +22,7 @@ Esta recomendação é uma inferência arquitetural com base nos contratos já d
 
 ## 2. Comparação direta
 
-| Critério | A — Backend como único caminho | B — Cliente direto com RLS |
+| Critério | A — Backend como caminho principal | B — Cliente direto com RLS |
 |---|---|---|
 | Onde aplicar regras de negócio | Serviços/backend centralizam validação, transações e autorização | Parte das regras de acesso fica em policies SQL; regras complexas ainda precisam de serviços/RPC confiáveis |
 | Exposição do banco | Banco não é chamado diretamente pelo navegador; endpoints públicos/administrativos são a superfície principal | Cliente conhece endpoint e usa chave pública; tabelas/views/RPC expostas precisam ser protegidas por RLS e grants |
@@ -37,7 +37,7 @@ Esta recomendação é uma inferência arquitetural com base nos contratos já d
 | Observabilidade | Correlação e logs centralizados na API; evitar registrar dados sensíveis | Eventos distribuídos entre cliente, banco e funções; é necessário definir a origem confiável da auditoria |
 | Adequação ao Campanhas | Alta para importação, produção, anúncio e auditoria | Possível para leituras públicas cuidadosamente limitadas; risco maior se usado como único mecanismo para todas as operações complexas |
 
-## 3. Opção A — Backend como único caminho de acesso
+## 3. Opção A — Backend como caminho principal
 
 ### Fluxo esperado
 
