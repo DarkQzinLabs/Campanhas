@@ -13,6 +13,7 @@ Plataforma de campanhas e rankings de produção.
 - [Contrato de ciclo de campanha e anúncio](docs/campaign-lifecycle-contract.md)
 - [Modelo de ameaças e matriz de acesso](docs/security-threat-model.md)
 - [Contrato de autorização e auditoria](docs/authorization-and-audit-contract.md)
+- [Matriz de permissões por tabela e lacunas de RLS](docs/database-permission-matrix.md)
 - [Contrato de segurança para importações](docs/import-safety-contract.md)
 - [Plano de migração e validação](docs/migration-and-testing.md)
 - [Checklist de verificação local](docs/local-validation-checklist.md)
