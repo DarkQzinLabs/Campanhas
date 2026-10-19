@@ -9,6 +9,7 @@ Plataforma de campanhas e rankings de produção.
 - [Modelo de dados](docs/data-model.md)
 - [Registro de decisões e pendências](docs/decisions-and-open-questions.md)
 - [Contrato de composição histórica e metas por ciclo](docs/historical-composition-contract.md)
+- [Contrato de identidade e idempotência da produção](docs/production-idempotency-contract.md)
 - [Contrato de ciclo de campanha e anúncio](docs/campaign-lifecycle-contract.md)
 - [Modelo de ameaças e matriz de acesso](docs/security-threat-model.md)
 - [Contrato de segurança para importações](docs/import-safety-contract.md)
