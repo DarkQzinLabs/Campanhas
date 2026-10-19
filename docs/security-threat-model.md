@@ -76,6 +76,7 @@ A função de usuário comum é incluída para deixar explícito que “autentic
 ### Segredos, observabilidade e operação
 - Manter segredos fora do repositório e do bundle cliente; usar variáveis/gestor de segredos do ambiente autorizado.
 - Separar ambientes e credenciais de desenvolvimento, preview e produção.
+- Separar, quando viável, a identidade de runtime da aplicação da identidade usada para migrations/DDL; credenciais de migração não devem ser carregadas pelo processo da aplicação. Se uma credencial de runtime contornar RLS, tratá-la como alto privilégio e exigir autorização server-side antes de cada operação.
 - Registrar ator, ação, alvo, horário, resultado e identificador de correlação para alterações administrativas, sem gravar tokens ou dados pessoais desnecessários.
 - Definir procedimento de rotação/revogação de credenciais e resposta a incidentes antes da operação real.
 
