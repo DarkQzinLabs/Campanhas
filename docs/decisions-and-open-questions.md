@@ -103,3 +103,48 @@ Arquivos lidos remotamente: `supabase/migrations/0001_initial_schema.sql`, `supa
 O arquivo `supabase/tests/negative_integrity.sql` já inclui cenários para compatibilidade campanha/ciclo, imutabilidade de snapshots, valores negativos e duplicidade da chave de origem. Os casos 10 e 11 registram expressamente duas lacunas do esquema atual. O caso 3 reconhece que a tabela de associação de membros não permite verificar compatibilidade grupo/campanha porque não armazena `campaign_id` nessa associação.
 
 A existência desses cenários não significa que foram aprovados: não foram executados nesta fase. Não alterei a migration nem os testes SQL, pois a solução correta depende das regras de composição histórica, estornos e idempotência ainda pendentes. Antes de qualquer integração real, o banco deve ser validado em ambiente descartável e a autorização precisa ser projetada explicitamente.
+
+## 9. DEC-09 — Caminho de acesso ao banco (provisória)
+
+**Status:** provisória; sujeita a revisão após definição do provedor, autenticação, modelo de autorização e fluxos reais de leitura/escrita. Este registro não autoriza conexão com banco real nem implementação.
+
+**Diretriz provisória**
+- Usar o backend como caminho principal para mutações e operações críticas: importação e confirmação de produção, cálculo/fechamento de ranking, criação de snapshots, anúncio de campeões, alterações administrativas e gravação de auditoria.
+- O backend deve autenticar a identidade, autorizar cada operação no servidor, validar regras de domínio e executar mudanças relacionadas em transações quando necessário. Segredos privilegiados do banco nunca devem ser enviados ao cliente.
+- Considerar acesso direto do cliente ao banco/Supabase somente para casos seletivos em que exista benefício concreto e documentado (por exemplo, uma leitura pública estritamente limitada), e apenas depois de definir e validar políticas RLS específicas para a tabela, operação, papel e escopo de dados. RLS não substitui validação de domínio nem autoriza automaticamente operações críticas.
+- Se não houver benefício claro demonstrável, manter o acesso pelo backend. A decisão final sobre provedor e desenho híbrido permanece em aberto.
+
+**Consequências esperadas**
+1. Centraliza validações de negócio, autorização, auditoria, idempotência e tratamento consistente de erros no servidor.
+2. Exige uma camada backend bem definida, proteção de credenciais, gestão de sessões/identidade e testes de autorização antes de operar com dados reais.
+3. Pode adicionar latência e trabalho de implementação em comparação com chamadas diretas do cliente; endpoints devem ser estreitos, paginados quando aplicável e limitados ao necessário.
+4. Acesso direto seletivo, se aprovado depois, exige contratos de leitura explícitos, privilégios mínimos e políticas RLS revisadas; não deve expor tabelas ou colunas administrativas por conveniência.
+5. A arquitetura deve continuar separando interfaces públicas e administrativas, sem confiar em controles visuais como barreira de segurança.
+
+**Privilégios mínimos e controles obrigatórios**
+- A identidade usada pelo backend deve receber somente os privilégios SQL necessários às operações previstas; evitar privilégios amplos de proprietário/superusuário e não usar credenciais administrativas privilegiadas em código cliente.
+- Separar, quando viável, identidades/credenciais de migração e de execução da aplicação; credenciais de migração não devem ser usadas em runtime.
+- Para qualquer acesso direto do cliente, habilitar RLS nas tabelas expostas e definir políticas específicas por operação e papel, com escopo de campanha/registro quando aplicável; revisar também privilégios SQL de concessão/revogação, views e funções expostas.
+- Tratar a ausência de RLS/políticas na migration atualmente inspecionada como bloqueio para expor diretamente suas tabelas; esta observação descreve os arquivos versionados, não o estado de um projeto Supabase remoto.
+- Registrar ator, operação, resultado e contexto suficiente para auditoria sem armazenar segredos ou dados desnecessários; definir tratamento para falhas e tentativas negadas.
+
+**Riscos principais**
+- **Acesso excessivo:** privilégios amplos ou credenciais privilegiadas no cliente podem permitir leitura ou alteração não autorizada.
+- **Políticas RLS incompletas:** uma política genérica, permissiva ou sem escopo pode expor dados entre campanhas ou permitir elevação de privilégios.
+- **Autorização duplicada/inconsistente:** regras diferentes no frontend, backend e banco podem produzir resultados divergentes; a decisão de acesso deve ser aplicada no servidor e, em caminhos diretos, também no banco.
+- **Confiança indevida em RLS:** políticas de linha não substituem validações de domínio, transações, idempotência, auditoria ou proteção de segredos.
+- **Concentração no backend:** falha, indisponibilidade ou defeito de autorização no backend pode afetar todas as operações; reduzir o risco com endpoints mínimos, revisão e observabilidade.
+- **Exposição de dados de ranking:** endpoints e views públicas devem revelar apenas os campos necessários, sem perfis, dados de auditoria ou metadados administrativos.
+
+**Pendências antes da decisão definitiva**
+- [ ] Confirmar provedor de banco/serviços e se Supabase será efetivamente adotado.
+- [ ] Definir o provedor de identidade Microsoft/Entra ID, os requisitos de sessão e o processo de provisionamento/revogação de administradores.
+- [ ] Definir o primeiro administrador e impedir autoelevação de papel por usuário comum.
+- [ ] Classificar operações e dados em públicos, autenticados e administrativos; especificar endpoints/contratos necessários.
+- [ ] Produzir matriz final de papéis × operações × tabelas/colunas e revisar privilégios SQL de execução.
+- [ ] Se houver acesso direto, escrever políticas RLS específicas, revisar views/funções e testar casos positivos e negativos em ambiente descartável.
+- [ ] Definir estratégia de transações, idempotência e auditoria para importações, fechamento de ciclos e snapshots.
+- [ ] Validar arquitetura e permissões em revisão de segurança antes de qualquer conexão com dados reais.
+
+**Critérios para reconsiderar**
+A decisão pode mudar se uma necessidade concreta de acesso direto for demonstrada, o conjunto de dados exposto for mínimo, as políticas RLS e privilégios forem verificáveis e testados, e houver evidência de que a abordagem melhora a solução sem enfraquecer a autorização ou a auditoria. Até lá, backend-first permanece uma orientação provisória, não uma aprovação final.
