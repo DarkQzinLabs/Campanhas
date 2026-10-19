@@ -111,6 +111,8 @@ A estrutura atual de `audit_events` cobre apenas parte desses campos de forma ex
 
 - Definir políticas RLS e privilégios mínimos por tabela/ação, ou documentar por que o desenho impede acesso direto e como o servidor impõe autorização.
 - Restringir operações sobre `profiles` e `audit_events` a serviços privilegiados do servidor com escopo mínimo.
+- Separar, quando viável, a identidade/credencial de runtime da identidade usada para migrations/DDL; a aplicação em execução não deve herdar privilégios de proprietário do schema por conveniência.
+- Se a credencial do backend contornar RLS, tratar isso como exceção de alto privilégio: autorização server-side e escopo mínimo devem ser aplicados antes de cada operação, sem presumir que RLS proteja essa chamada.
 - Impedir escrita de `actor_profile_id` arbitrário pelo cliente; derivar o ator do contexto de identidade validado.
 - Validar o papel e o estado ativo no servidor em cada operação sensível, sem confiar exclusivamente em um claim antigo ou cache de longa duração.
 - Assegurar que operações compostas (por exemplo, confirmar importação e anunciar campeão) revalidem permissão e estado do recurso no momento da transação.
