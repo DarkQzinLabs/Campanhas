@@ -148,3 +148,25 @@ A existência desses cenários não significa que foram aprovados: não foram ex
 
 **Critérios para reconsiderar**
 A decisão pode mudar se uma necessidade concreta de acesso direto for demonstrada, o conjunto de dados exposto for mínimo, as políticas RLS e privilégios forem verificáveis e testados, e houver evidência de que a abordagem melhora a solução sem enfraquecer a autorização ou a auditoria. Até lá, backend-first permanece uma orientação provisória, não uma aprovação final.
+
+
+## 10. Reconciliação final das pendências cruzadas F2 (20/10/2026)
+
+Esta seção confronta os identificadores de acompanhamento registrados em `docs/application-foundation.md` com as decisões e pendências já existentes neste documento. “Relacionado” não significa “resolvido”: uma diretriz geral só fecha o item quando responde à questão específica.
+
+| ID cruzado F2 | Referência já existente | Estado após reconciliação | O que falta para fechar |
+|---|---|---|---|
+| F2-DOM-01 — glossário de equipes, grupos e categorias de ranking | DEC-06 cobre composição histórica de equipes; o modelo diferencia ilhas físicas e agrupamentos competitivos. | **Parcialmente coberto; continua aberto.** A preservação histórica é uma diretriz existente, mas não define o significado canônico de `squads`, `campaign_teams`, `competitive_groups` e `campaign_groups`, nem os limites do pódio. | Glossário de domínio aprovado que relacione cada entidade, categoria, escopo e regra de composição, sem renomeação presumida. |
+| F2-DOM-02 — tipos de entrada do snapshot | A diretriz “Ranking anunciado” na seção 1 exige snapshot histórico imutável; DEC-08 cobre retenção/auditoria. | **Diretriz geral existente; contrato de tipos continua aberto.** Nenhum item define como o snapshot representa entradas individuais e agregadas por equipe. | Definir contrato tipado por categoria, identidade estável e campos obrigatórios antes de modificar a implementação. |
+| F2-DOM-03 — valores congelados no snapshot | A diretriz de snapshot imutável e DEC-08 sustentam a necessidade de histórico/auditoria. | **Parcialmente coberto; continua aberto.** Não há decisão explícita sobre congelar meta, produção, percentual, regra de cálculo ou versão da regra. | Definir o conjunto de valores-base e calculados necessário para reproduzir e auditar o resultado histórico. |
+| F2-DOM-04 — transições de campanha/ciclo | DEC-04 trata expressamente regras temporais de campanhas/ciclos e permanece pendente. A diretriz de anúncio impede revelação automática durante campanha ativa. | **Já registrado como pendência; continua aberto.** A diretriz existente não constitui máquina de estados completa. | Aprovar transições, pré-condições, continuidade para novo ciclo, tratamento de reabertura e invariantes transacionais. |
+| F2-DOM-05 — validade e ordenação do ranking anunciado | A diretriz de snapshot imutável define o objetivo histórico; DEC-08 cobre auditoria em termos gerais. | **Sem decisão específica; continua aberto.** Não há contrato explícito para posições contíguas/ordenadas nem reconciliação entre meta, produção e percentual. | Definir as validações obrigatórias no servidor e os dados de origem confiáveis exigidos antes do anúncio. |
+| F2-SEC-01 — campos/estrutura do contrato de auditoria | DEC-08 — política de retenção e auditoria — está aberta. O contrato de autorização/auditoria exige resultado, correlação e motivo, mas deixa a representação física em aberto. | **Já registrado como pendência; continua aberto.** A necessidade está documentada, mas não foi escolhida a estrutura persistida. | Decidir entre colunas dedicadas e esquema versionado em `details`, incluindo consulta, integridade, privacidade e compatibilidade. Não alterar migration nesta reconciliação. |
+| F2-DATA-01 — escopo da chave de idempotência e correções/estornos | DEC-02 trata a chave única de produção; DEC-03 trata correções e estornos. Ambos seguem abertos e exigem evidência da fonte. | **Já registrado como pendência; continua aberto.** O índice atual não comprova idempotência completa nem resolve o significado de correções/estornos. | Obter amostras anonimizadas e confirmar escopo da chave, repetição de arquivo/operação, correção, cancelamento e estorno antes de decidir schema ou índice. |
+
+### Resultado e próximos limites
+
+- Nenhuma das sete pendências cruzadas está totalmente fechada por uma decisão existente.
+- DEC-04, DEC-06, DEC-08, DEC-02 e DEC-03 já cobrem partes dos temas; foram mantidas como referências, sem criar IDs duplicados para as mesmas decisões.
+- Os itens F2-DOM-02 e F2-DOM-05 precisam de definição explícita do contrato de domínio; não há decisão atual suficiente para inferir a solução.
+- Esta reconciliação é documental. Não escolhe provedores, não aprova contratos finais, não altera código ou migrations e não autoriza integração com dados reais.
