@@ -136,3 +136,35 @@ Os endpoints são contratos planejados, não rotas implementadas. Definir schema
 - **Conta e branch:** usar exclusivamente MatheusPassos07 e docs/architecture-foundation.
 
 Próximo passo executável: após o usuário confirmar que o clone está acessível (ou fornecer acesso ao ambiente local), verificar estado e lockfile e então implementar a estrutura mínima em commit isolado. Até lá, esta especificação é o artefato reversível e verificável desta etapa.
+
+
+## 8. Revisão cruzada F2 — alinhamento documental (20/10/2026)
+
+Esta revisão compara `docs/architecture.md`, `docs/data-model.md`, `docs/decisions-and-open-questions.md`, os contratos de autorização/auditoria e importação, e os módulos de domínio consultados remotamente. É uma revisão estática; não altera o comportamento do sistema nem fecha decisões de negócio.
+
+### Alinhamentos confirmados
+
+- A direção de aplicação modular e backend como caminho principal é coerente entre arquitetura, fundação da aplicação e DEC-09; provedores e infraestrutura continuam provisórios.
+- Microsoft Entra ID, PostgreSQL/Supabase e Vercel continuam opções a avaliar, não integrações aprovadas ou disponíveis.
+- A importação exige prévia, confirmação explícita, autorização no servidor e idempotência definida a partir da fonte real; a chave e as regras de correção/estorno continuam pendentes.
+- O anúncio de campeões é explícito, autorizado e auditável; fim de ciclo, por si só, não deve divulgar campeão.
+- Ilha física e agrupamento competitivo são conceitos diferentes; a composição histórica deve ser preservada.
+- A ausência de políticas RLS/GRANT/REVOKE na migration inspecionada continua bloqueadora para exposição direta do banco. Esta constatação descreve somente o arquivo versionado, não o estado de um banco remoto.
+
+### Lacunas de contrato a resolver antes de implementar os fluxos correspondentes
+
+| ID de acompanhamento | Divergência ou lacuna observada | Encaminhamento seguro |
+|---|---|---|
+| F2-DOM-01 | A arquitetura e o modelo usam `individual`, `squads` e `campaign_teams`, mas o modelo também define `competitive_groups.group_type = team | campaign_group` e uma entidade separada `campaign_groups`. O código de pódio aplica limites distintos por `squads` e `campaign_teams`; a correspondência exata com “equipe” e “time/ilha” não está formalmente definida. | Registrar um glossário canônico: entidade, finalidade, relação com ilha física, escopo por campanha e categoria de ranking. Não renomear tabelas/tipos nem alterar limites sem decisão de domínio. |
+| F2-DOM-02 | `createChampionSnapshot()` usa `RankingEntry`, cuja identidade é `negotiatorId`; `buildTeamRanking()` devolve `TeamRankingEntry`, identificado por `teamId`. Assim, o contrato tipado do snapshot não representa diretamente um ranking agregado por equipe/time. | Definir uma união discriminada de entradas de snapshot ou contratos específicos por categoria, incluindo o identificador e nome corretos para cada tipo. Validar a escolha antes de implementação; não alterar o código nesta revisão. |
+| F2-DOM-03 | `RankingEntry` guarda produção realizada e percentual, mas não a meta usada no cálculo; o modelo de dados descreve snapshots com métricas/valores calculados e a arquitetura exige preservar métricas históricas. | Decidir quais valores-base e métricas calculadas são congelados no snapshot para auditoria/reconciliação, sem depender dos dados correntes. |
+| F2-DOM-04 | O modelo lista estados de campanha `draft/active/inactive/ended` e estados de ciclo `planned/active/closed/champions_announced`, mas a transição permitida entre encerramento do ciclo, anúncio e continuidade em novo ciclo não está definida como máquina de estados completa. | Documentar transições válidas, pré-condições, reabertura/continuidade e invariantes transacionais; não inferir anúncio automático nem permitir estados contraditórios. |
+| F2-DOM-05 | A função de snapshot verifica posições positivas e não repetidas, mas a inspeção estática já registrou que não exige sequência contínua/ordem crescente; também não reconcilia percentual com meta e produção. O pódio, por sua vez, pressupõe ranking previamente ordenado. | Definir o contrato de entrada do anúncio e a camada responsável pela validação final, incluindo consistência dos valores, ordem/posições e dados provenientes do servidor. |
+| F2-SEC-01 | O contrato de auditoria pede resultado, correlação e motivo em eventos relevantes, enquanto a migration atual tem ator/ação/alvo/horário/details sem campos dedicados para todos esses elementos. A própria especificação deixa em aberto usar colunas dedicadas ou esquema versionado em `details`. | Manter a decisão em aberto e resolvê-la antes de implementar auditoria persistente; não modificar migration nesta fase. |
+| F2-DATA-01 | O índice atual de origem usa `(source_system, external_key)` quando a chave não é nula, mas a semântica e o escopo dessa chave, além de correções/estornos, ainda dependem de amostras anonimizadas e decisão de negócio. | Não afirmar idempotência completa nem habilitar importação real até fechar a chave e o tratamento de reenvios/correções. |
+
+### Limites desta revisão
+
+- Não foram alterados código, tipos de domínio, rotas, telas, dependências ou migrations.
+- Não foram executados testes, typecheck, build, instalação, SQL ou validação local.
+- Esta tabela é um registro documental de lacunas, não uma aprovação de arquitetura final. Os itens permanecem abertos até decisão explícita e validação posterior.
