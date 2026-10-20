@@ -432,3 +432,15 @@ Portanto, **F9 permanece em planejamento, sem prontidão para entrega**. Este do
 ### 6. Evidências mínimas do registro de release
 
 Para cada candidata, criar um registro contendo: identificador da release; commit e branch; ambiente; aprovadores e data; resultados de validação; resumo de segurança; status de migrations e backup/restauração; evidência de homologação; limites/gatilhos acordados; procedimento de rollback e resultado do ensaio; decisão final e eventuais exceções aceitas explicitamente.
+
+### 7. Revisão cruzada de prontidão da plataforma (documental)
+
+Revisão cruzada de 20/10/2026 entre este checklist, `docs/architecture.md`, `docs/decisions-and-open-questions.md`, DEC-09 e `docs/database-access-architecture-comparison.md`:
+
+- **Hospedagem ainda não decidida:** Vercel é apenas candidata na arquitetura; não há decisão registrada que autorize tratá-la como plataforma escolhida. Não criar projeto, vincular repositório, configurar domínio ou alterar proteção de deployment nesta etapa.
+- **Configuração específica da plataforma ainda pendente:** depois da escolha formal, registrar a associação entre branches e ambientes (desenvolvimento/preview/produção), quem pode promover versões, proteções de preview, escopo das variáveis por ambiente, domínio/DNS, logs/alertas, limites/custos e procedimento de rollback da plataforma.
+- **Dependências externas ainda abertas:** a prontidão depende da decisão de provedor de banco e identidade, da fonte de dados e das permissões efetivamente disponíveis. Supabase, Microsoft Entra ID e Vercel permanecem opções a avaliar, não integrações concluídas.
+- **Compatibilidade de release e banco:** antes de aprovar uma versão, registrar a estratégia de compatibilidade entre versão anterior/nova e schema; nenhuma reversão de migration ou restauração de dados deve ser presumida automática.
+- **Critério de bloqueio:** se a plataforma, o ambiente de destino, as variáveis necessárias, os responsáveis ou o caminho de rollback não estiverem identificados e revisados, a candidata não passa pelo portão de entrega.
+
+Esta revisão é documental e não seleciona fornecedor nem concede autorização para provisionamento, conexão com serviços, alteração de configuração, validação local ou deploy.
